@@ -1,0 +1,19 @@
+# Build artifacts
+build/
+*.exe
+*.dll
+*.o
+*.obj
+
+# IDE / editor
+.vscode/
+.idea/
+
+# ImGui runtime layout
+imgui.ini
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake.in

@@ -74,10 +74,10 @@ MachineCmd (View→Controller), FactorySnap (Model→View)
 
 ## 4. 클래스 책임
 
-- **Factory**: 모든 객체 소유, 매 틱 update 호출, BROKEN 머신을 IDLE Technician에 디스패치, 파이프라인 셋업, FactorySnap 생성 및 메멘토용 누적. 의미 단위 도메인 메서드(start/pause/reset/setSpeed/setScenario/forceBreak/instantRepair/rewind)를 노출하며 MachineCmd 구조체에는 의존하지 않는다
+- **Factory**: 모든 객체 소유, 매 틱 update 호출, Broken 머신을 Waiting Technician에 디스패치, 파이프라인 셋업, FactorySnap 생성 및 메멘토용 누적. 의미 단위 도메인 메서드(start/pause/reset/setSpeed/setScenario/forceBreak/instantRepair/rewind)를 노출하며 MachineCmd 구조체에는 의존하지 않는다
 - **Controller**: View가 작성한 MachineCmd를 파싱(`dispatch`)해 Factory의 도메인 메서드를 호출하는 얇은 계층
 - **SimulationObject**: 공통 인터페이스 (`update(tick)`, `getInfo()`, `getId()`). EventLog 참조 보유. 디스패치용 가상함수 (`needsRepair()`, `assignWorker(...)`)
-- **Machine**: 상태(IDLE/WORKING/BROKEN), 체력(0~10), 진행도, 처리시간, 고장확률, 입출력 큐 참조. 자식이 `process()` 구현. BROKEN 전이 시 자기 로그
+- **Machine**: 상태(Idle/Working/Broken), 체력(0~10), 진행도, 처리시간, 고장확률, 입출력 큐 참조. 자식이 `process()` 구현. Broken 전이 시 자기 로그
 - **Cutter 자식들**: RawWood를 HeadPart/NeckPart/BodyPart로 가공
 - **Painter**: BodyPart에 도장 (isPainted = true)
 - **Assembler**: 다중 입력 큐 동기화 공통 로직
@@ -87,7 +87,7 @@ MachineCmd (View→Controller), FactorySnap (Model→View)
 - **Packager**: 완제품 포장 후 출고
 - **WoodSpawner**: 일정 주기로 RawWood를 3개 Cutter에 라운드 로빈 push
 - **ElecPartSpawner**: 일정 주기로 Bridge, Pickup을 각 종류 큐에 동시에 하나씩 push
-- **Technician**: 상태(WAITING/MOVING/REPAIRING). dispatch(Machine\*)로 작업 받음. 일정 틱 후 머신 수리. 자기 활동 로그. 총 2명
+- **Technician**: 상태(Waiting/Moving/Repairing). dispatch(Machine\*)로 작업 받음. 일정 틱 후 머신 수리. 자기 활동 로그. 총 2명
 - **Conveyor**: 내부 큐와 capacity. 가득 차면 push 실패 → 호출자가 lost 카운트
 - **Product 자식들**: id, 종류 정보만 보유하는 데이터 객체. BodyPart만 isPainted 상태 보유
 - **EventLog**: LogEntry 벡터, max size 200, add/clear/get
@@ -115,16 +115,16 @@ MachineCmd (View→Controller), FactorySnap (Model→View)
 
 ## 6. 핵심 정책
 
-- **체력**: 0~10 정수. 매 틱 시나리오별 확률로 1 감소. 0이 되면 BROKEN
+- **체력**: 0~10 정수. 매 틱 시나리오별 확률로 1 감소. 0이 되면 Broken
 - **고장 시 동작**: 작업 중이었다면 진행도와 현재 처리 중인 제품을 유지한 채 멈춤. 수리 완료 후 멈춘 지점부터 재개
-- **수리**: Technician 2명, 각 수리 소요 3틱. 완료 시 체력 10으로 복원, 상태 IDLE로 복귀
-- **고장 디스패치**: Factory가 매 틱 BROKEN 머신과 IDLE Technician을 매칭. Technician은 머신 목록을 모름
+- **수리**: Technician 2명, 각 수리 소요 3틱. 완료 시 체력 10으로 복원, 상태 Idle로 복귀
+- **고장 디스패치**: Factory가 매 틱 Broken 머신과 Waiting Technician을 매칭. Technician은 머신 목록을 모름
 - **오버플로우**: 컨베이어가 가득 차면 새 제품 드롭, lost 카운트 증가
 - **Spawner**: 일정 주기로 push. 큐가 모두 가득 차면 스킵
 - **속도 배수**: 1~5배. 경과 시간 누적이 (600ms / 배수)를 넘을 때마다 1틱 진행
 - **ID 체계**: Machine ID는 고정 문자열. Product ID는 전역 카운터로 단일 증가
-- **Force Break**: 일반 고장과 동일 로직(진행도·제품 유지). 체력을 0으로 설정해 BROKEN 전이
-- **Instant Repair**: Technician 디스패치를 거치지 않고 즉시 체력 10 복구, IDLE 복귀
+- **Force Break**: 일반 고장과 동일 로직(진행도·제품 유지). 체력을 0으로 설정해 Broken 전이
+- **Instant Repair**: Technician 디스패치를 거치지 않고 즉시 체력 10 복구, Idle 복귀
 - **Reset / 시나리오 변경**: 틱 0 초기화, 머신 상태 초기화, EventLog 초기화, 메멘토 스냅 초기화
 
 ## 7. 이벤트 로깅 정책
@@ -136,7 +136,7 @@ EventLog는 Factory가 소유한다. 각 SimulationObject는 생성 시 EventLog
 - Spawner: 원자재/전자부품 생성
 - Cutter/Painter/Assembler/Packager: 작업 시작, 작업 완료
 - ElecPartCollector: 부품 세트 완성
-- Machine: BROKEN 전이 시
+- Machine: Broken 전이 시
 - Technician: 수리 시작, 수리 완료
 - Conveyor: 오버플로우(드롭) 발생만 기록. 정상 push/pop은 생략
 
@@ -163,7 +163,7 @@ EventLog는 Factory가 소유한다. 각 SimulationObject는 생성 시 EventLog
 ```
 View (ImGui 위젯) → 버튼 입력으로 MachineCmd 작성
 Controller.dispatch(cmd) → cmd.action 파싱 → Factory의 도메인 메서드 호출
-Factory → 모든 객체 update + BROKEN 머신 디스패치
+Factory → 모든 객체 update + Broken 머신 디스패치
 객체들 → 자기 활동을 EventLog에 직접 기록
 Factory → FactorySnap 생성 (메멘토용으로 누적 보관)
 View → FactorySnap 읽어 렌더링
@@ -196,7 +196,7 @@ Controller의 `dispatch`는 `action`을 분기해 Factory의 도메인 메서드
 
 ### FactorySnap (Model → View)
 
-모든 객체의 상태 정보를 담는다. 메멘토 복원이 가능한 수준으로 두텁게 정의하며, UI는 이 중 렌더링에 필요한 값만 선택해 사용한다. 진행 카운터(progress, spawnCounter, repairProgress)를 포함해야 정확한 되감기가 보장된다.
+모든 객체의 상태 정보를 담는다. 메멘토 복원이 가능한 수준으로 두텁게 정의하며, UI는 이 중 렌더링에 필요한 값만 선택해 사용한다. 진행 카운터(Machine·Spawner·Technician의 progress)를 포함해야 정확한 되감기가 보장된다.
 
 ```cpp
 struct ProductSnap {
@@ -207,7 +207,7 @@ struct ProductSnap {
 
 struct MachineSnap {
     std::string  id;
-    MachineState state;              // IDLE / WORKING / BROKEN
+    MachineState state;              // Idle / Working / Broken
     int          health;             // 0~10
     int          progress;           // 현재 진행 틱
     int          processingTime;
@@ -224,16 +224,16 @@ struct ConveyorSnap {
 
 struct SpawnerSnap {
     std::string id;
-    int         period;
-    int         spawnCounter;        // 다음 생성까지
-    int         roundRobinIndex;
+    int         period;              // 한 번 spawn하기까지 걸리는 틱 수 (머신의 processingTime과 동일 의미)
+    int         progress;            // 현재까지 누적 틱, period 도달 시 spawn 후 0으로 리셋 (머신의 progress와 동일 의미)
+    std::optional<CutterMachineType> nextRoundRobinTarget;   // WoodSpawner 전용, ElecPartSpawner는 nullopt
 };
 
 struct TechnicianSnap {
-    std::string      state;          // WAITING / MOVING / REPAIRING
-    std::string      id;
-    std::string      targetMachineId;   // 없으면 빈 문자열
-    int              repairProgress;
+    std::string     id;
+    TechnicianState state;             // Waiting / Moving / Repairing
+    std::string     targetMachineId;   // 없으면 빈 문자열
+    int             progress;
 };
 
 struct StatisticsSnap {

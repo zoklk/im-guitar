@@ -6,13 +6,13 @@
 
 공통 인터페이스를 머지해 백/프론트 병렬 작업이 가능하게 한다.
 
-- [ ] `CMakeLists.txt` 작성 (ImGui static lib target, SDL2/OpenGL3 링크, `src/` 자동 수집)
-- [ ] `src/{common,model,view,controller}/` 디렉토리 생성
-- [ ] `src/common/Types.h` — `CmdAction`, `MachineState`, `ScenarioType`, `ProductType` enum
-- [ ] `src/common/MachineCmd.h` — View → Controller 구조체
-- [ ] `src/common/LogEntry.h` — `{tick, sourceId, message}`
-- [ ] `src/common/FactorySnap.h` — ProductSnap / MachineSnap / ConveyorSnap / SpawnerSnap / TechnicianSnap / StatisticsSnap / FactorySnap
-- [ ] 기존 `src/main.cpp` 유지 상태로 빌드 통과 확인
+- [x] `CMakeLists.txt` 작성 (ImGui static lib target, SDL2/OpenGL3 링크, `src/` 자동 수집)
+- [x] `src/{common,model,view,controller}/` 디렉토리 생성
+- [x] `src/common/Types.h` — `CmdAction`, `MachineState`, `ScenarioType`, `ProductType` enum
+- [x] `src/common/MachineCmd.h` — View → Controller 구조체
+- [x] `src/common/LogEntry.h` — `{tick, sourceId, message}`
+- [x] `src/common/FactorySnap.h` — ProductSnap / MachineSnap / ConveyorSnap / SpawnerSnap / TechnicianSnap / StatisticsSnap / FactorySnap
+- [x] 기존 `src/main.cpp` 유지 상태로 빌드 통과 확인
 
 ## Phase 1 — Model 빌딩 블록 (M1 5/23 전까지)
 
