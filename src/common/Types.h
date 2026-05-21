@@ -13,23 +13,39 @@ enum class CmdAction {
     ClearLog,
 };
 
-enum class MachineState {
-    Idle,
-    Working,
-    Broken,
+enum class MachineType {
+    WoodSpawner,
+    BridgeSpawner,
+    PickupSpawner,
+    HeadCutter,
+    NeckCutter,
+    BodyCutter,
+    Painter,
+    ElecPartCollector,
+    BodyAssembler,
+    PartAssembler,
+    Packager,
 };
 
-enum class TechnicianState {
-    Waiting,
-    Moving,
-    Repairing,
+enum class EventType {
+    Fault,
+    Resume,
+    Started,
+    Completed,
+    Backpressure,
+};
+
+enum class OverflowMode {
+    Drop,
+    Backpressure,
 };
 
 enum class ScenarioType {
     Normal,
-    RandomBreakdowns,
+    Breakdowns,
     Bottleneck,
     Overflow,
+    SmartFactory,
 };
 
 enum class ProductType {
@@ -42,11 +58,4 @@ enum class ProductType {
     ElecPartSet,
     AssembledBody,
     FinishedGuitar,
-};
-
-// WoodSpawner의 라운드 로빈 대상 식별용. 0=Head 같은 묵시적 인덱스 대신 사용.
-enum class CutterMachineType {
-    Head,
-    Neck,
-    Body,
 };
