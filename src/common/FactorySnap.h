@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "Event.h"
 #include "LogEntry.h"
 #include "Types.h"
 
@@ -14,34 +15,32 @@ struct ProductSnap {
 };
 
 struct MachineSnap {
-    std::string  id;
-    MachineState state          = MachineState::Idle;
-    int          health         = 10;
-    int          processingTime = 6;
-    int          progress       = 0;
-    double       breakdownProb  = 0.0;
-    int          outputCount    = 0;
-    std::optional<ProductSnap> currentProduct;
+    std::string              id;
+    MachineType              type           = MachineType::WoodSpawner;
+    int                      health         = 10;
+    int                      processingTime = 6;
+    int                      progress       = 0;
+    double                   breakdownProb  = 0.0;
+    int                      outputCount    = 0;
+    bool                     suspended      = false;   // Backpressure 일시정지 상태 (SmartFactory)
+    std::vector<ProductSnap> inputBuffer;
+    std::vector<ProductSnap> currentProduct;
+    std::optional<std::string> assignedTechId;          // Factory.snapshot()이 Technician 목록 훑어 derive
 };
 
 struct ConveyorSnap {
-    std::string              id;
-    int                      capacity = 0;
-    std::vector<ProductSnap> items;
-};
-
-struct SpawnerSnap {
-    std::string id;
-    int         period   = 0;   // 한 번 spawn하기까지 걸리는 틱 수 (머신의 processingTime과 동일 의미)
-    int         progress = 0;
-    std::optional<CutterMachineType> nextRoundRobinTarget;   // WoodSpawner 전용. ElecPartSpawner는 nullopt
+    std::string                            id;
+    int                                    length       = 0;
+    std::string                            downstreamId;
+    OverflowMode                           overflowMode = OverflowMode::Drop;
+    std::vector<std::optional<ProductSnap>> slots;       // size == length, nullopt = 빈 슬롯
 };
 
 struct TechnicianSnap {
-    std::string     id;
-    TechnicianState state = TechnicianState::Waiting;
-    std::string     targetMachineId;   // 없으면 빈 문자열
-    int             progress = 0;
+    std::string                id;
+    int                        repairTime     = 3;
+    int                        repairProgress = 0;
+    std::optional<std::string> targetMachineId;
 };
 
 struct StatisticsSnap {
@@ -59,10 +58,11 @@ struct FactorySnap {
 
     std::vector<MachineSnap>    machines;
     std::vector<ConveyorSnap>   conveyors;
-    std::vector<SpawnerSnap>    spawners;
     std::vector<TechnicianSnap> technicians;
 
     StatisticsSnap stats;
 
     std::vector<LogEntry> logs;
+    std::vector<Event>    pendingEvents;   // EventBroker 큐 잔량 (메멘토 정확도)
+    std::string           rngState;        // std::mt19937 직렬화 문자열
 };
