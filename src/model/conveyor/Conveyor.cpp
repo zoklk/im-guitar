@@ -1,19 +1,16 @@
 #include "Conveyor.h"
 
+#include <cstdlib>
+#include <iostream>
 #include <utility>
 
-#include "Event.h"
 #include "EventBroker.h"
 #include "IMachine.h"
 #include "Product.h"
 
-Conveyor::Conveyor(std::string  id,
-                   int          length,
-                   OverflowMode mode,
-                   EventBroker& broker)
+Conveyor::Conveyor(std::string id, int length, EventBroker& broker)
     : SimulationObject(broker),
       id_(std::move(id)),
-      overflowMode_(mode),
       slots_(length) {}
 
 bool Conveyor::canAccept() const {
@@ -21,11 +18,14 @@ bool Conveyor::canAccept() const {
 }
 
 void Conveyor::push(std::unique_ptr<Product> p, int tick) {
-    if (canAccept()) {
-        slots_[0] = std::move(p);
-        return;
+    if (!canAccept()) {
+        std::cerr << "FATAL: Conveyor::push to full slot. conveyor=" << id_
+                  << " tick=" << tick
+                  << " — upstream Machine must check canAccept() before push."
+                  << std::endl;
+        std::abort();
     }
-    onOverflow(std::move(p), tick);
+    slots_[0] = std::move(p);
 }
 
 void Conveyor::update(int /*tick*/) {
@@ -40,33 +40,4 @@ void Conveyor::update(int /*tick*/) {
             slots_[i] = std::move(slots_[i - 1]);
         }
     }
-}
-
-void Conveyor::onOverflow(std::unique_ptr<Product> p, int tick) {
-    if (overflowMode_ == OverflowMode::Drop) {
-        publishDrop(p.get(), tick);
-    } else {
-        publishBackpressure(tick);
-    }
-    // p는 함수 종료 시 unique_ptr 소멸로 자동 해제
-}
-
-void Conveyor::publishDrop(const Product* p, int tick) {
-    Event ev;
-    ev.type     = EventType::Drop;
-    ev.sourceId = id_;
-    ev.tick     = tick;
-    if (p != nullptr) {
-        ev.productId   = p->getId();
-        ev.productType = p->getType();
-    }
-    broker_.publish(ev);
-}
-
-void Conveyor::publishBackpressure(int tick) {
-    Event ev;
-    ev.type     = EventType::Backpressure;
-    ev.sourceId = id_;
-    ev.tick     = tick;
-    broker_.publish(ev);
 }

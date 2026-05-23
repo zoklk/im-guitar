@@ -16,13 +16,14 @@ struct ProductSnap {
 
 struct MachineSnap {
     std::string              id;
-    MachineType              type           = MachineType::WoodSpawner;
-    int                      health         = 10;
-    int                      processingTime = 6;
-    int                      progress       = 0;
-    double                   breakdownProb  = 0.0;
-    int                      outputCount    = 0;
-    bool                     suspended      = false;   // Backpressure 일시정지 상태 (SmartFactory)
+    MachineType              type               = MachineType::WoodSpawner;
+    int                      health             = 10;
+    int                      processingTime     = 6;
+    int                      progress           = 0;
+    double                   breakdownProb      = 0.0;
+    int                      outputCount        = 0;
+    OverflowMode             outputOverflowMode = OverflowMode::Drop;   // 머신이 출력 conveyor 포화 시 취할 정책
+    bool                     suspended          = false;                // Backpressure 모드에서 outputConveyor.canAccept()==false 시 true
     std::vector<ProductSnap> inputBuffer;
     std::vector<ProductSnap> currentProduct;
     std::optional<std::string> assignedTechId;          // Factory.snapshot()이 Technician 목록 훑어 derive
@@ -31,7 +32,6 @@ struct MachineSnap {
 struct ConveyorSnap {
     std::string                             id;
     std::string                             downstreamId;
-    OverflowMode                            overflowMode = OverflowMode::Drop;
     std::vector<std::optional<ProductSnap>> slots;       // size = conveyor length, nullopt = 빈 슬롯
 };
 

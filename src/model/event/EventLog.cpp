@@ -10,8 +10,10 @@ const char* eventTypeName(EventType type) {
         case EventType::Resume:       return "Resume";
         case EventType::Started:      return "Started";
         case EventType::Completed:    return "Completed";
-        case EventType::Backpressure: return "Backpressure";
+        case EventType::Spawned:      return "Spawned";
+        case EventType::Packaged:     return "Packaged";
         case EventType::Drop:         return "Drop";
+        case EventType::Backpressure: return "Backpressure";
     }
     return "Unknown";
 }

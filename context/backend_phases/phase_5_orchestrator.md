@@ -145,19 +145,22 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 - publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → EngineerManager 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
 - 명세상 명확하므로 EngineerManager.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
 
-### Event payload 타입 확정
+### Event payload 타입 확정 (Phase 3 단계에서 선반영)
 
-발행 시점별 페이로드 검토:
+`void*` 폐기. `Event`에 `std::optional<int> productId`, `std::optional<ProductType> productType` 추가. 발행 시점별 채움 규칙:
 
-| Event | payload 필요? |
-|---|---|
-| Fault | nullptr (sourceId로 머신 식별) |
-| Resume | nullptr |
-| Started | nullptr |
-| Completed | nullptr |
-| Backpressure | nullptr |
+| Event | productId | productType | publisher | 비고 |
+|---|---|---|---|---|
+| **Spawned** | new product | new product | Spawner | WIP 회계: wip += sourceCount (=1) |
+| **Packaged** | consumed FinishedGuitar | FinishedGuitar | Packager | WIP 회계: wip -= 5, finished++ |
+| **Drop** | 손실된 product | 손실된 product | Machine (push 실패 시) | WIP 회계: wip/lost -= sourceCount |
+| Started | 대표 input 1개 | 대표 input 1개 | 일반 Machine ProcessingState.onEnter | EventLog 라이프사이클 (WIP 영향 없음) |
+| Completed | output | output | 일반 Machine ProcessingState push 성공 시 | EventLog 라이프사이클 (WIP 영향 없음) |
+| Fault | nullopt | nullopt | Machine BrokenState.onEnter | sourceId=machine.id |
+| Resume | nullopt | nullopt | Machine.repair() 본체 | sourceId=machine.id (Fault cascade 트리거) |
+| Backpressure | nullopt | nullopt | (phase 6 결정) | EventLog 가시성 보조 |
 
-→ 현재 모든 케이스 nullptr 가능. **`void*` 그대로 유지**. variant 도입 불필요.
+이유: `void*`는 (1) 타입 안전성 0, (2) 수명 관리 불가 (publish 후 flush 사이 dangling), (3) 메멘토 직렬화 불가. 위 표의 정보는 (a) Statistics가 sourceCount 룩업으로 WIP/lost 회계, (b) EventLog가 사람이 읽을 수 있는 메시지 조합에 사용. variant 도입은 불필요 — optional 두 개로 충분.
 
 ## 의존성
 
