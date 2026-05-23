@@ -1,5 +1,6 @@
-// Phase 2 — Conveyor 슬롯 시프트 / 출구 방출 / overflow Drop / overflow Backpressure /
-//           setDownstream 와이어링 검증. MockMachine으로 IMachine 주입.
+// Phase 2 — Conveyor 슬롯 시프트 / 출구 방출 / overflow Drop publish /
+//           overflow Backpressure publish / setDownstream 와이어링 검증.
+// MockMachine으로 IMachine 주입, Statistics는 broker 구독자로서 Drop 이벤트 자동 반영.
 
 #include <memory>
 #include <string>
@@ -42,10 +43,8 @@ std::unique_ptr<RawWood> makeWood(int id) {
 
 TEST(Conveyor, PushFillsEntrySlot) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
 
-    Conveyor c("C1", 5, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 5, OverflowMode::Drop, broker);
 
     EXPECT_TRUE(c.canAccept());
     c.push(makeWood(101), /*tick=*/0);
@@ -57,10 +56,8 @@ TEST(Conveyor, PushFillsEntrySlot) {
 
 TEST(Conveyor, ShiftAdvancesProductTowardsExit) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
 
-    Conveyor c("C1", 5, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 5, OverflowMode::Drop, broker);
     c.push(makeWood(42), /*tick=*/0);
 
     // length=5 → 입구(0)에서 출구(4)까지 4틱
@@ -75,11 +72,9 @@ TEST(Conveyor, ShiftAdvancesProductTowardsExit) {
 
 TEST(Conveyor, ExitSlotDispatchesToDownstream) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
     MockMachine mock;
 
-    Conveyor c("C1", 3, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 3, OverflowMode::Drop, broker);
     c.setDownstream(&mock);
 
     c.push(makeWood(7), /*tick=*/0);
@@ -93,37 +88,51 @@ TEST(Conveyor, ExitSlotDispatchesToDownstream) {
     EXPECT_EQ(mock.received[0]->getId(), 7);
 }
 
-TEST(Conveyor, OverflowDropIncrementsLostAndLogsTick) {
-    EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
+TEST(Conveyor, OverflowDropPublishesDropEventAndUpdatesStats) {
+    EventBroker   broker;
+    EventLog      log(broker);
+    Statistics    stats(broker);
+    EventRecorder rec;
+    broker.subscribe(EventType::Drop, "C1", &rec);
 
-    Conveyor c("C1", 1, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 1, OverflowMode::Drop, broker);
 
-    c.push(makeWood(1), /*tick=*/0);   // 슬롯 점유
+    // 사전 wip=1 (Spawner가 만들었다고 가정)
+    broker.publish({EventType::Started, "Spawner", 0, nullptr});
+    broker.flush();
+    EXPECT_EQ(stats.getWip(), 1);
+
+    c.push(makeWood(1), /*tick=*/0);          // 슬롯 점유
     EXPECT_FALSE(c.canAccept());
 
-    stats.incWip();  // drop이 wip 감소시키므로 사전에 1 적재
-    c.push(makeWood(2), /*tick=*/42);  // overflow → drop
+    c.push(makeWood(2), /*tick=*/42);         // overflow → Drop publish
+    broker.flush();
 
+    // Drop 이벤트 검증
+    ASSERT_EQ(rec.received.size(), 1u);
+    EXPECT_EQ(rec.received[0].type, EventType::Drop);
+    EXPECT_EQ(rec.received[0].sourceId, "C1");
+    EXPECT_EQ(rec.received[0].tick, 42);
+
+    // Statistics가 broker 경유로 자동 갱신
     EXPECT_EQ(stats.getLost(), 1);
     EXPECT_EQ(stats.getWip(), 0);
 
+    // EventLog도 subscribeAll로 자동 기록
     auto logs = log.getLogs();
     ASSERT_FALSE(logs.empty());
     EXPECT_EQ(logs.back().tick, 42);
     EXPECT_EQ(logs.back().sourceId, "C1");
-    EXPECT_EQ(logs.back().message, "overflow drop");
+    EXPECT_NE(logs.back().message.find("Drop"), std::string::npos);
 }
 
 TEST(Conveyor, OverflowBackpressurePublishesAndDoesNotCountLost) {
     EventBroker   broker;
-    EventLog      log(broker);
-    Statistics    stats;
+    Statistics    stats(broker);
     EventRecorder rec;
     broker.subscribe(EventType::Backpressure, "C1", &rec);
 
-    Conveyor c("C1", 1, OverflowMode::Backpressure, broker, log, stats);
+    Conveyor c("C1", 1, OverflowMode::Backpressure, broker);
 
     c.push(makeWood(1), /*tick=*/0);
     c.push(makeWood(2), /*tick=*/11);  // overflow → publish Backpressure
@@ -138,10 +147,8 @@ TEST(Conveyor, OverflowBackpressurePublishesAndDoesNotCountLost) {
 
 TEST(Conveyor, CanAcceptTracksEntrySlot) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
 
-    Conveyor c("C1", 3, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 3, OverflowMode::Drop, broker);
 
     EXPECT_TRUE(c.canAccept());
     c.push(makeWood(1), 0);
@@ -153,11 +160,9 @@ TEST(Conveyor, CanAcceptTracksEntrySlot) {
 
 TEST(Conveyor, ReverseShiftCondensesGapTowardsEntry) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
 
     // 초기 [1,1,1,1,0], downstream=null → 출구 비어있으니 한 틱 후 [0,1,1,1,1]
-    Conveyor c("C1", 5, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 5, OverflowMode::Drop, broker);
 
     c.push(makeWood(11), 0);
     c.update(1);  // [_, 11, _, _, _]
@@ -189,11 +194,9 @@ TEST(Conveyor, ReverseShiftCondensesGapTowardsEntry) {
 
 TEST(Conveyor, BlockedDownstreamCausesPileUp) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
     // downstream을 wire하지 않음 → 출구 슬롯이 영구 점유
 
-    Conveyor c("C1", 3, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 3, OverflowMode::Drop, broker);
 
     c.push(makeWood(1), 0);
     c.update(1);  // [_, 1, _]
@@ -203,9 +206,8 @@ TEST(Conveyor, BlockedDownstreamCausesPileUp) {
     c.push(makeWood(2), 0);
     c.update(4);  // [_, 2, 1]
     c.push(makeWood(3), 0);
-    c.update(5);  // [_, 3, 1] (slot2는 점유, slot1 끌어당김 없음 → wait, 검증 필요)
+    c.update(5);  // [3, 2, 1]
 
-    // update(5) 직전 [3, 2, 1]. update: 출구막힘, 시프트 i=2(점유,no), i=1(점유,no) → [3, 2, 1] 유지
     EXPECT_NE(c.slotAt(0), nullptr);
     EXPECT_NE(c.slotAt(1), nullptr);
     EXPECT_NE(c.slotAt(2), nullptr);
@@ -215,11 +217,9 @@ TEST(Conveyor, BlockedDownstreamCausesPileUp) {
 
 TEST(Conveyor, WiringIsDeferredViaSetDownstream) {
     EventBroker broker;
-    EventLog    log(broker);
-    Statistics  stats;
     MockMachine mock;
 
-    Conveyor c("C1", 2, OverflowMode::Drop, broker, log, stats);
+    Conveyor c("C1", 2, OverflowMode::Drop, broker);
 
     c.push(makeWood(99), 0);
     c.update(1);  // [_, 99]

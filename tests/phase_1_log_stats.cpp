@@ -1,5 +1,5 @@
-// Phase 1 — EventLog max 200 enforcement + broker subscribeAll 동작 + appendDirect/clear.
-// 그리고 Statistics 4 카운터 증감 / reset 동작.
+// Phase 1 — EventLog max 200 enforcement + broker subscribeAll 동작 / clear.
+// 그리고 Statistics가 broker 이벤트 구독으로 카운터 갱신 / reset 동작.
 
 #include <string>
 
@@ -69,54 +69,62 @@ TEST(EventLog, ClearEmptiesEntries) {
     EXPECT_EQ(log.size(), 0u);
 }
 
-TEST(EventLog, AppendDirectBypassesBroker) {
-    EventBroker broker;
-    EventLog    log(broker);
-
-    LogEntry entry;
-    entry.tick     = 42;
-    entry.sourceId = "ConveyorX";
-    entry.message  = "overflow drop";
-    log.appendDirect(entry);
-
-    auto logs = log.getLogs();
-    ASSERT_EQ(logs.size(), 1u);
-    EXPECT_EQ(logs[0].tick, 42);
-    EXPECT_EQ(logs[0].sourceId, "ConveyorX");
-    EXPECT_EQ(logs[0].message, "overflow drop");
-}
-
 TEST(Statistics, AllCountersStartAtZero) {
-    Statistics s;
+    EventBroker broker;
+    Statistics  s(broker);
+
     EXPECT_EQ(s.getFinished(), 0);
     EXPECT_EQ(s.getWip(), 0);
     EXPECT_EQ(s.getBreakdowns(), 0);
     EXPECT_EQ(s.getLost(), 0);
 }
 
-TEST(Statistics, IncrementersAndDecrementerWork) {
-    Statistics s;
-    s.incFinished();
-    s.incFinished();
-    s.incWip();
-    s.incWip();
-    s.incWip();
-    s.decWip();
-    s.incBreakdowns();
-    s.incLost();
+TEST(Statistics, CountersUpdateFromBrokerEvents) {
+    EventBroker broker;
+    Statistics  s(broker);
 
-    EXPECT_EQ(s.getFinished(), 2);
-    EXPECT_EQ(s.getWip(), 2);
+    // Started ×3 → wip +3
+    broker.publish(makeEvent(EventType::Started, "Spawner", 1));
+    broker.publish(makeEvent(EventType::Started, "Spawner", 2));
+    broker.publish(makeEvent(EventType::Started, "Spawner", 3));
+    // Completed → finished +1, wip -1
+    broker.publish(makeEvent(EventType::Completed, "Packager", 4));
+    // Drop → lost +1, wip -1
+    broker.publish(makeEvent(EventType::Drop, "C1", 5));
+    // Fault → breakdowns +1
+    broker.publish(makeEvent(EventType::Fault, "M1", 6));
+    broker.flush();
+
+    EXPECT_EQ(s.getFinished(), 1);
+    EXPECT_EQ(s.getWip(), 1);          // +3 -1 -1
     EXPECT_EQ(s.getBreakdowns(), 1);
     EXPECT_EQ(s.getLost(), 1);
 }
 
+TEST(Statistics, IgnoresUnsubscribedEventTypes) {
+    EventBroker broker;
+    Statistics  s(broker);
+
+    // Resume / Backpressure는 Statistics 관심 밖
+    broker.publish(makeEvent(EventType::Resume, "M1", 1));
+    broker.publish(makeEvent(EventType::Backpressure, "C1", 2));
+    broker.flush();
+
+    EXPECT_EQ(s.getFinished(), 0);
+    EXPECT_EQ(s.getWip(), 0);
+    EXPECT_EQ(s.getBreakdowns(), 0);
+    EXPECT_EQ(s.getLost(), 0);
+}
+
 TEST(Statistics, ResetZerosAllCounters) {
-    Statistics s;
-    s.incFinished();
-    s.incWip();
-    s.incBreakdowns();
-    s.incLost();
+    EventBroker broker;
+    Statistics  s(broker);
+
+    broker.publish(makeEvent(EventType::Started, "Spawner", 1));
+    broker.publish(makeEvent(EventType::Drop, "C1", 2));
+    broker.publish(makeEvent(EventType::Fault, "M1", 3));
+    broker.flush();
+
     s.reset();
 
     EXPECT_EQ(s.getFinished(), 0);

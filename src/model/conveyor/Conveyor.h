@@ -9,8 +9,6 @@
 #include "Types.h"
 
 class EventBroker;
-class EventLog;
-class Statistics;
 class IMachine;
 class Product;
 
@@ -19,9 +17,7 @@ public:
     Conveyor(std::string  id,
              int          length,
              OverflowMode mode,
-             EventBroker& broker,
-             EventLog&    eventLog,
-             Statistics&  statistics);
+             EventBroker& broker);
 
     // SimulationObject
     void update(int tick) override;
@@ -43,7 +39,7 @@ public:
 
 private:
     void onOverflow(std::unique_ptr<Product> p, int tick);
-    void dropAndLog(std::unique_ptr<Product> p, int tick);
+    void publishDrop(int tick);
     void publishBackpressure(int tick);
 
     std::string                           id_;
@@ -51,6 +47,4 @@ private:
     OverflowMode                          overflowMode_;
     std::vector<std::unique_ptr<Product>> slots_;
     IMachine*                             downstream_ = nullptr;
-    EventLog&                             eventLog_;
-    Statistics&                           statistics_;
 };

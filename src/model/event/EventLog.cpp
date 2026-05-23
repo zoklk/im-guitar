@@ -11,6 +11,7 @@ const char* eventTypeName(EventType type) {
         case EventType::Started:      return "Started";
         case EventType::Completed:    return "Completed";
         case EventType::Backpressure: return "Backpressure";
+        case EventType::Drop:         return "Drop";
     }
     return "Unknown";
 }
@@ -37,10 +38,6 @@ void EventLog::handle(const Event& ev) {
     entry.sourceId = ev.sourceId;
     entry.message  = formatMessage(ev);
     pushEntry(std::move(entry));
-}
-
-void EventLog::appendDirect(const LogEntry& entry) {
-    pushEntry(entry);
 }
 
 void EventLog::clear() {

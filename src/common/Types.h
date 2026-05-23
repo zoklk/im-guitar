@@ -33,6 +33,7 @@ enum class EventType {
     Started,
     Completed,
     Backpressure,
+    Drop,
 };
 
 enum class OverflowMode {
