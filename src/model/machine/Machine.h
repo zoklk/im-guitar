@@ -11,6 +11,7 @@
 #include "model/conveyor/IConveyor.h"
 #include "model/machine/IMachine.h"
 #include "model/product/Product.h"
+#include "model/product/ProductIdGen.h"
 #include "model/sim/SimulationObject.h"
 
 class EventBroker;
@@ -36,7 +37,8 @@ public:
             int           requiredCount,
             OverflowMode  outputOverflowMode,
             EventBroker&  broker,
-            std::mt19937& rng);
+            std::mt19937& rng,
+            ProductIdGen& idGen);
 
     ~Machine() override = default;
 
@@ -113,6 +115,7 @@ protected:
     IConveyor*                             outputConveyor_ = nullptr;
     IMachineState*                         currentState_   = nullptr;
     std::mt19937&                          rng_;
+    ProductIdGen&                          idGen_;
 
 private:
     friend class MachineIdleState;

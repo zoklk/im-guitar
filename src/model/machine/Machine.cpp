@@ -12,7 +12,8 @@ Machine::Machine(std::string   id,
                  int           requiredCount,
                  OverflowMode  outputOverflowMode,
                  EventBroker&  broker,
-                 std::mt19937& rng)
+                 std::mt19937& rng,
+                 ProductIdGen& idGen)
     : SimulationObject(broker),
       id_(std::move(id)),
       type_(type),
@@ -20,7 +21,8 @@ Machine::Machine(std::string   id,
       breakdownProb_(breakdownProb),
       requiredCount_(requiredCount),
       outputOverflowMode_(outputOverflowMode),
-      rng_(rng) {
+      rng_(rng),
+      idGen_(idGen) {
     currentState_ = &MachineIdleState::instance();
     // 초기 상태 진입 알림 (tick=0). onEnter 부수효과는 없음 (Idle::onEnter 미정의).
 }

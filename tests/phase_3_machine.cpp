@@ -24,15 +24,16 @@ namespace {
 // HeadPart(id 고정)으로 변환 후 tryPushOrDrop. Started/Completed publish 검증용.
 class TestMachine : public Machine {
 public:
-    TestMachine(std::string  id,
-                int          processingTime,
-                double       breakdownProb,
-                int          requiredCount,
-                OverflowMode mode,
-                EventBroker& broker,
-                std::mt19937& rng)
+    TestMachine(std::string   id,
+                int           processingTime,
+                double        breakdownProb,
+                int           requiredCount,
+                OverflowMode  mode,
+                EventBroker&  broker,
+                std::mt19937& rng,
+                ProductIdGen& idGen)
         : Machine(std::move(id), MachineType::HeadCutter,
-                  processingTime, breakdownProb, requiredCount, mode, broker, rng) {}
+                  processingTime, breakdownProb, requiredCount, mode, broker, rng, idGen) {}
 
     int processCalls = 0;
 
@@ -59,6 +60,13 @@ struct EventRecorder : public IEventHandler {
 
 std::mt19937 makeRng(uint32_t seed = 42) { return std::mt19937(seed); }
 
+// Slice 1 TestMachine은 직접 idGen.next()를 호출하지 않으므로 공유 인스턴스로 충분.
+// (TestMachine.process는 input id + 1000으로 단순 변환)
+ProductIdGen& sharedIdGen() {
+    static ProductIdGen g;
+    return g;
+}
+
 }  // namespace
 
 // ─────────────────────────────────────────────────────────────
@@ -68,7 +76,7 @@ std::mt19937 makeRng(uint32_t seed = 42) { return std::mt19937(seed); }
 TEST(PhaseMachineSkeleton, StartsInIdleState) {
     EventBroker broker;
     auto        rng = makeRng();
-    TestMachine m("M1", /*pt=*/3, /*bp=*/0.0, /*req=*/1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", /*pt=*/3, /*bp=*/0.0, /*req=*/1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     EXPECT_EQ(m.getCurrentState(), &MachineIdleState::instance());
     EXPECT_EQ(m.getHealth(), 10);
@@ -78,7 +86,7 @@ TEST(PhaseMachineSkeleton, StartsInIdleState) {
 TEST(PhaseMachineSkeleton, IdleStaysIdleWhenInputInsufficient) {
     EventBroker broker;
     auto        rng = makeRng();
-    TestMachine m("M1", 3, 0.0, /*req=*/1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 3, 0.0, /*req=*/1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     m.update(1);
     EXPECT_EQ(m.getCurrentState(), &MachineIdleState::instance());
@@ -89,7 +97,7 @@ TEST(PhaseMachineSkeleton, IdleTransitionsToProcessingWhenCanStart) {
     EventRecorder rec;
     broker.subscribeAll(&rec);
     auto rng = makeRng();
-    TestMachine m("M1", 3, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 3, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     m.acceptProduct(std::make_unique<RawWood>(7));
     m.update(1);
@@ -116,7 +124,7 @@ TEST(PhaseMachineSkeleton, ProcessingCompletesAfterProcessingTime) {
     EventRecorder rec;
     broker.subscribeAll(&rec);
     auto rng = makeRng();
-    TestMachine m("M1", /*pt=*/3, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", /*pt=*/3, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     Conveyor out("Cout", 3, broker);
     m.setOutputConveyor(&out);
@@ -151,7 +159,7 @@ TEST(PhaseMachineSkeleton, TryPushOrDropPublishesDropWhenFull) {
     EventRecorder rec;
     broker.subscribeAll(&rec);
     auto rng = makeRng();
-    TestMachine m("M1", 1, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 1, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     Conveyor out("Cout", 1, broker);
     m.setOutputConveyor(&out);
@@ -184,7 +192,7 @@ TEST(PhaseMachineSkeleton, TryPushOrDropPublishesDropWhenFull) {
 TEST(PhaseMachineSkeleton, BackpressureModeBlocksStartWhenConveyorFull) {
     EventBroker broker;
     auto        rng = makeRng();
-    TestMachine m("M1", 1, 0.0, 1, OverflowMode::Backpressure, broker, rng);
+    TestMachine m("M1", 1, 0.0, 1, OverflowMode::Backpressure, broker, rng, sharedIdGen());
 
     Conveyor out("Cout", 1, broker);
     m.setOutputConveyor(&out);
@@ -206,7 +214,7 @@ TEST(PhaseMachineSkeleton, BackpressureModeBlocksStartWhenConveyorFull) {
 TEST(PhaseMachineSkeleton, BreakdownProb1DecrementsHealthEveryTick) {
     EventBroker broker;
     auto        rng = makeRng();
-    TestMachine m("M1", /*pt=*/100, /*bp=*/1.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", /*pt=*/100, /*bp=*/1.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     m.acceptProduct(std::make_unique<RawWood>(1));
     m.update(1);  // Idle → Processing (onEnter, no health check)
@@ -228,7 +236,7 @@ TEST(PhaseMachineSkeleton, ForceBreakLeadsToBrokenStateOnNextUpdate) {
     EventRecorder rec;
     broker.subscribeAll(&rec);
     auto rng = makeRng();
-    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     m.forceBreak();
     EXPECT_EQ(m.getHealth(), 0);
@@ -257,7 +265,7 @@ TEST(PhaseMachineSkeleton, RepairFromBrokenWithProcessingTickReturnsToProcessing
     broker.subscribeAll(&rec);
     auto rng = makeRng();
     // bp=1.0: health 매 틱 -1. processingTime 충분히 크게 잡아 health 먼저 0 도달
-    TestMachine m("M1", /*pt=*/100, /*bp=*/1.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", /*pt=*/100, /*bp=*/1.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     Conveyor out("Cout", 3, broker);
     m.setOutputConveyor(&out);
@@ -294,7 +302,7 @@ TEST(PhaseMachineSkeleton, RepairFromBrokenIdleReturnsToIdle) {
     EventRecorder rec;
     broker.subscribeAll(&rec);
     auto rng = makeRng();
-    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     // Idle에서 forceBreak → 다음 update에서 Broken
     m.forceBreak();
@@ -324,7 +332,7 @@ TEST(PhaseMachineSkeleton, RepairFromBrokenIdleReturnsToIdle) {
 TEST(PhaseMachineSkeleton, HandleFaultIncrementsPendingDownstreamFaults) {
     EventBroker broker;
     auto        rng = makeRng();
-    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     Event ev{};
     ev.type     = EventType::Fault;
@@ -345,7 +353,7 @@ TEST(PhaseMachineSkeleton, HandleFaultIncrementsPendingDownstreamFaults) {
 TEST(PhaseMachineSkeleton, CanStartFalseWhenPendingDownstreamFaultsPositive) {
     EventBroker broker;
     auto        rng = makeRng();
-    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng);
+    TestMachine m("M1", 5, 0.0, 1, OverflowMode::Drop, broker, rng, sharedIdGen());
 
     m.acceptProduct(std::make_unique<RawWood>(1));
     EXPECT_TRUE(m.canStart());
