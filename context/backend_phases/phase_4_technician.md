@@ -6,7 +6,9 @@
 
 ## 적용 패턴
 
-- **State** (싱글톤 + DI): `ITechnicianState` + `IdleState` / `WorkingState`
+- **State** (싱글톤 + DI): `ITechnicianState` + `TechnicianIdleState` / `TechnicianWorkingState`
+
+> 클래스명 접두사 (`Technician*`): Machine의 `MachineIdleState`와 글로벌 네임스페이스에서 이름 충돌 회피.
 
 ## 구성요소
 
@@ -23,10 +25,10 @@ static <Concrete>& instance()
 ```
 
 자식:
-- **IdleState**: update no-op. `targetMachine_ == nullptr` 보장. EngineerManager가 `assign()` 호출 시 외부에서 전이
-- **WorkingState**:
+- **TechnicianIdleState**: update no-op. `targetMachine_ == nullptr` 보장. EngineerManager가 `assign()` 호출 시 외부에서 전이
+- **TechnicianWorkingState**:
   - `onEnter`: `repairProgress_ = 0`
-  - `update`: `repairProgress_++`. repairTime 도달 시 → `targetMachine_->repair()` → `targetMachine_ = nullptr` → `IdleState` 전이
+  - `update`: `repairProgress_++`. repairTime 도달 시 → `targetMachine_->repair()` → `targetMachine_ = nullptr` → `TechnicianIdleState` 전이
 
 > Resume 이벤트 발행은 `Machine.repair()` 내부에서 처리 (sourceId=`machine.id`). Technician은 별도 발행 안 함 — instantRepair 경로(Phase 6)와 일관성 유지 + Fault cascade 구독자가 `machine.id` 토픽을 기대하기 때문. Phase 3 명세 참조.
 
@@ -39,11 +41,11 @@ repairTime_: int (default 3)
 currentState_: ITechnicianState*
 
 update(tick): currentState_->update(*this, tick)
-assign(Machine*): targetMachine_ = m; transitionTo(WorkingState::instance())
-isIdle(): currentState_ == &IdleState::instance()
+assign(Machine*): targetMachine_ = m; transitionTo(TechnicianWorkingState::instance())
+isIdle(): currentState_ == &TechnicianIdleState::instance()
 ```
 
-EngineerManager가 `assign()` 호출 → WorkingState 진입 → 3틱 후 자동 복귀.
+EngineerManager가 `assign()` 호출 → TechnicianWorkingState 진입 → 3틱 후 자동 복귀.
 
 ### 이벤트 발행
 
@@ -69,11 +71,11 @@ Technician은 자체 이벤트 발행 없음. 수리 완료 시 `machine.repair(
 
 `tests/phase_4_technician.cpp` (mock Machine):
 
-- IdleState 시작: repairProgress 0, targetMachine null. update no-op
-- assign(mock) → WorkingState 진입. onEnter에서 repairProgress 0 셋
+- TechnicianIdleState 시작: repairProgress 0, targetMachine null. update no-op
+- assign(mock) → TechnicianWorkingState 진입. onEnter에서 repairProgress 0 셋
 - 1~2틱 진행: repairProgress 증가, machine.repair 호출 안 됨
-- repairTime 도달 (3틱): machine.repair 호출 검증 (mock Machine 측에서 Resume publish 책임 — 본 테스트 범위 밖) + targetMachine null + IdleState 복귀
-- isIdle() 정확성: WorkingState 중 false, 복귀 후 true
+- repairTime 도달 (3틱): machine.repair 호출 검증 (mock Machine 측에서 Resume publish 책임 — 본 테스트 범위 밖) + targetMachine null + TechnicianIdleState 복귀
+- isIdle() 정확성: TechnicianWorkingState 중 false, 복귀 후 true
 
 ## 산출 브랜치
 

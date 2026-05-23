@@ -1,7 +1,7 @@
 // im-guitar — Electric Guitar Factory Simulation
 //
 // 현재 상태: ImGui 부트스트랩 + 5개 윈도우 placeholder.
-// Phase 5에서 Factory / Controller / View 객체를 연결하고 메인 루프에
+// Phase 7에서 Factory / Controller / View 객체를 연결하고 메인 루프에
 // (cmd 수집 → dispatch → tickIfDue → snapshot → render) 흐름을 채운다.
 
 #include <SDL.h>
@@ -40,7 +40,7 @@ int main(int, char**)
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
 
-    // ── Phase 5 통합 지점: 도메인 객체 생성 ───────────────────
+    // ── Phase 7 통합 지점: 도메인 객체 생성 ───────────────────
     // Factory    factory;
     // Controller controller(factory);
     // View       view;
@@ -59,7 +59,7 @@ int main(int, char**)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // ── Phase 5 통합 지점: 한 프레임의 흐름 ───────────────
+        // ── Phase 7 통합 지점: 한 프레임의 흐름 ───────────────
         // factory.tickIfDue();                       // 600ms / speedMult 마다 1틱
         // const FactorySnap snap = factory.snapshot();
         // const MachineCmd  cmd  = view.render(snap);  // 위젯에서 cmd 작성
