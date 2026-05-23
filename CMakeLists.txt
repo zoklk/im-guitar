@@ -95,6 +95,8 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/machine"
         "${CMAKE_SOURCE_DIR}/src/model/machine/spawner"
         "${CMAKE_SOURCE_DIR}/src/model/machine/cutter"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/painter"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/collector"
         "${CMAKE_SOURCE_DIR}/src/model/machine/assembler"
         "${CMAKE_SOURCE_DIR}/src/model/machine/packager"
     )
