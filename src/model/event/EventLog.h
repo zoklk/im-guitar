@@ -14,7 +14,6 @@ public:
 
     void handle(const Event& ev) override;
 
-    void appendDirect(const LogEntry& entry);
     void clear();
 
     std::vector<LogEntry> getLogs() const;

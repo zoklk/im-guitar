@@ -73,14 +73,20 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 
 ### `Statistics`
 
-단순 카운터 4종: `finished` / `wip` / `breakdowns` / `lost`. getter + incrementer + `decWip()` + `reset()`. 호출자:
-- `finished`: Packager가 출고 시 `incFinished()`
-- `wip`: Spawner가 생성 시 `incWip()`, Packager가 출고 시 `decWip()`, Conveyor.dropAndLog 시 `decWip()` (drop된 제품도 공정에서 제거되므로)
-- `breakdowns`: BrokenState.onEnter `incBreakdowns()`
-- `lost`: Conveyor.dropAndLog `incLost()`
-- `reset()`: Reset cmd 경로에서 호출, 4 카운터 모두 0으로
+`IEventHandler` 구현. 생성자에서 `EventBroker&`를 받아 4종 이벤트를 구독해 카운터를 자동 갱신. 외부에서 카운터를 직접 증감하는 setter는 노출하지 않음 (강결합 차단). 노출 API는 `getter ×4` + `reset()` + `handle()`.
 
-> wip는 "현재 공정 중인 제품 수" 정의. 따라서 drop 시에도 decWip를 같이 호출해야 일관. `dropAndLog`가 단일 호출 지점이므로 거기서 묶어서 처리
+이벤트 → 카운터 매핑:
+- `Started`   → `wip++`              (Spawner가 제품 생성 시 publish)
+- `Completed` → `finished++`, `wip--` (Packager가 출고 시 publish)
+- `Drop`      → `lost++`, `wip--`    (Conveyor가 overflow drop 시 publish)
+- `Fault`     → `breakdowns++`       (BrokenState 진입 시 publish)
+- `Resume` / `Backpressure` → 통계 무관 (구독 안 함)
+
+`reset()`은 Reset cmd 경로에서 호출, 4 카운터 모두 0으로.
+
+> wip는 "현재 공정 중인 제품 수" 정의. Drop 시에도 wip--를 같이 해야 일관 — Drop 이벤트 단일 핸들러에서 묶어 처리.
+
+> 모든 카운터 변경 경로가 broker 이벤트 단일화 → Conveyor / Machine 등 발행자는 Statistics를 알 필요 없음. 카운터 의미 추가 시 `handle()` switch만 늘리면 됨.
 
 ### `EventLog`
 
@@ -90,7 +96,8 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 - `getLogs()` getter — `deque → vector` 복사 반환. Factory.snapshot()이 호출해 `FactorySnap.logs`에 복사
 - `size()` getter — 테스트/검증용
 - `clear()` — ClearLog cmd 처리용
-- `appendDirect(LogEntry)` — Conveyor.dropAndLog 같은 EventBroker 안 거치는 케이스 대응
+
+> broker 우회 경로(`appendDirect` 같은 직접 push API)는 두지 않음. 모든 기록은 publish → subscribeAll로 일원화. 발행자는 EventLog 존재를 알 필요 없음.
 
 ## 파일 배치
 
@@ -118,8 +125,8 @@ CMake에 `model_lib` static library 추가 (`src/model/*.cpp` GLOB_RECURSE). PUB
 
 - **EventBroker**: subscribe/publish/flush 라운드트립. type 구독만 등록 후 다른 type 이벤트 publish → handle 호출 안 됨. 토픽 (type, sourceA) 구독 → sourceB 이벤트 publish → 호출 안 됨, sourceA 이벤트 publish → 호출됨. subscribeAll은 모든 type 수신. dispatch 순서 검증 (mock handler call order).
 - **Product**: 9종 인스턴스화, `ProductIdGen` 인스턴스 1개에 `next()` 연속 호출 시 ID 단조 +1, 별도 인스턴스는 카운터 독립 (테스트 격리 검증), BodyPart의 isPainted 토글, getType() 반환값.
-- **Statistics**: 4개 카운터 증감, getter 반환값.
-- **EventLog**: max 200 enforcement (201개 push → 가장 오래된 1개 drop), broker subscribeAll 후 publish 시 handle 호출되어 log 누적, clear() 후 size 0, appendDirect 정상 작동.
+- **Statistics**: 생성자가 broker 구독 등록. Started/Completed/Drop/Fault 이벤트 publish → flush 후 카운터 의도대로 증감 (예: Started ×3 + Completed + Drop → wip=1, finished=1, lost=1). Resume/Backpressure는 카운터 무영향. reset() 후 4 카운터 모두 0.
+- **EventLog**: max 200 enforcement (201개 push → 가장 오래된 1개 drop), broker subscribeAll 후 publish 시 handle 호출되어 log 누적, clear() 후 size 0.
 
 ## 산출 브랜치
 
