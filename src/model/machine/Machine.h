@@ -76,7 +76,7 @@ public:
     int          getOutputCount() const         { return outputCount_; }
     OverflowMode getOutputOverflowMode() const  { return outputOverflowMode_; }
     IConveyor*   getOutputConveyor() const      { return outputConveyor_; }
-    int          getInputBufferSize() const     { return static_cast<int>(inputBuffer_.size()); }
+    virtual int  getInputBufferSize() const     { return static_cast<int>(inputBuffer_.size()); }
     int          getCurrentProductSize() const  { return static_cast<int>(currentProduct_.size()); }
     int          getPendingDownstreamFaults() const { return pendingDownstreamFaults_; }
     const IMachineState* getCurrentState() const { return currentState_; }
