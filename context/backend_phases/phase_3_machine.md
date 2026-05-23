@@ -17,16 +17,19 @@
 
 ```
 virtual void update(Machine&, int tick) = 0
-virtual void onEnter(Machine&)  {}
-virtual void onExit(Machine&)   {}
+virtual void onEnter(Machine&, int tick) {}
+virtual void onExit(Machine&, int tick)  {}
 virtual const char* name() const = 0
 static <Concrete>& instance()       // 각 구체 클래스가 자기 싱글톤 반환
 ```
 
+onEnter/onExit에도 tick을 받는 이유: 상태 전이 시점에 이벤트 발행 필요 (예: BrokenState.onEnter의 Fault publish). 모든 시그니처가 tick을 일관되게 받음.
+
 자식:
 - **MachineIdleState**: `m.canStart()` 호출 (자식 override 가능, 기본은 `inputBuffer.size() >= requiredCount`). Backpressure 모드면 `m.outputConveyor->canAccept()`도 함께 검사 (false면 머무름). true → `MachineProcessingState` 전이
 - **MachineProcessingState**:
-  - `onEnter`: inputBuffer에서 requiredCount만큼 move → currentProduct, `Started` publish (sourceId=machine.id, productId/Type=대표 input 1개; Assembler는 첫 input)
+  - `onEnter`: currentProduct가 비어있으면 새 처리 사이클 (gatherInputs + processingTick=0 + Started publish). 비어있지 않으면 Broken에서 repair 복귀로 간주, 상태 보존하고 no-op
+  - Started publish: sourceId=machine.id, productId/Type=대표 input 1개 (MultiInputMachine은 requiredTypes_[0] 종류)
   - `update`: `m.processingTick++`. 매 틱 health drop 체크 (`m.rng()` 사용 — 아래 알고리즘). processingTime 도달 시 → `m.process()` 호출 → push 결과에 따라:
     - **push 성공**: `Completed` publish (productId/Type=output), `outputCount++`, `MachineIdleState` 복귀
     - **push 실패 + Drop 모드**: Machine이 직접 `Drop` publish (productId/Type=output), product 폐기, `Completed`는 발행하지 않음, `MachineIdleState` 복귀
@@ -68,10 +71,12 @@ pendingDownstreamFaults_: int                 // SmartFactory에서만 사용 �
 update(tick): currentState_->update(*this, tick)
 transitionTo(IMachineState&): cur.onExit → 갱신 → new.onEnter
 
-virtual void acceptProduct(unique_ptr<Product>)  // 기본: inputBuffer_.push_back. Assembler/Collector override
-virtual bool canStart() const                    // 기본: inputBuffer.size() >= requiredCount && pendingDownstreamFaults_ == 0 && (Drop모드 || outputConveyor->canAccept()). Assembler/Collector override
-virtual void process() = 0                       // currentProduct → output 생성 → tryPushOrDrop()으로 출력
-repair()                                         // Technician / InstantRepair 호출용, Resume publish
+virtual void acceptProduct(unique_ptr<Product>)  // 기본: inputBuffer_.push_back. MultiInputMachine이 typedBuffer 분류로 override
+virtual bool canStart() const                    // 기본: inputBuffer.size() >= requiredCount && pendingDownstreamFaults_ == 0 && (Drop모드 || outputConveyor->canAccept()). MultiInputMachine이 typedBuffer 검사로 override
+virtual void process(int tick) = 0               // currentProduct → output 생성 → tryPushOrDrop()으로 출력
+virtual void gatherInputs()                      // 기본: inputBuffer 끝에서 requiredCount만큼 currentProduct로 move. MultiInputMachine이 typedBuffer 종류별 1개씩으로 override
+virtual void publishStarted(int tick)            // 기본: 첫 currentProduct 정보로 Started publish. Spawner가 no-op으로 override
+repair(int tick)                                 // Technician / InstantRepair 호출용, Resume publish
 forceBreak()                                     // health = 0 설정 (다음 update에서 자연스레 Broken 전이)
 
 // helper (Drop 모드 push 분기 한 곳에 모음)
@@ -139,19 +144,19 @@ Packager는 일반 Machine이지만 `process()`가 input을 소비하고 output�
 
 ### 구체 클래스 11종
 
-| 카테고리 | 클래스 | requiredCount | process() 동작 |
+| 카테고리 (디렉토리) | 클래스 | requiredCount | process() 동작 |
 |---|---|---|---|
-| Spawner | WoodSpawner | 0 | make_unique<RawWood>(newId), Spawned publish, tryPushOrDrop |
+| Spawner (추상, `spawner/`) | WoodSpawner | 0 | make_unique<RawWood>(newId), Spawned publish, tryPushOrDrop |
 | | BridgeSpawner | 0 | make_unique<Bridge>(newId), Spawned publish, tryPushOrDrop |
 | | PickupSpawner | 0 | make_unique<Pickup>(newId), Spawned publish, tryPushOrDrop |
-| Cutter (추상) | HeadCutter | 1 | RawWood 소비 → HeadPart(newId) 생성, tryPushOrDrop |
+| Cutter (추상, `cutter/`) | HeadCutter | 1 | RawWood 소비 → HeadPart(newId) 생성, tryPushOrDrop |
 | | NeckCutter | 1 | RawWood → NeckPart(newId), tryPushOrDrop |
 | | BodyCutter | 1 | RawWood → BodyPart(newId), tryPushOrDrop |
-| | Painter | 1 | BodyPart 받아서 isPainted=true, **새 id로 BodyPart 재발급 후** tryPushOrDrop |
-| | ElecPartCollector | 2 (종류별 1) | Bridge + Pickup → ElecPartSet(newId), tryPushOrDrop |
-| Assembler (추상) | BodyAssembler | 3 (종류별 1) | Head + Neck + paintedBody → AssembledBody(newId), tryPushOrDrop |
-| | PartAssembler | 2 (종류별 1) | AssembledBody + ElecPartSet → FinishedGuitar(newId), tryPushOrDrop |
-| | Packager | 1 | FinishedGuitar 소비, Packaged publish, 출력 없음 |
+| Painter (`painter/`) | Painter | 1 | BodyPart 받아서 isPainted=true, **새 id로 BodyPart 재발급 후** tryPushOrDrop |
+| MultiInputMachine 자식 (`multiple/collector/`) | ElecPartCollector | 2 (Bridge + Pickup) | ElecPartSet(newId) 생성, tryPushOrDrop |
+| MultiInputMachine 자식 (`multiple/assembler/`) | BodyAssembler | 3 (Head + Neck + paintedBody) | AssembledBody(newId) 생성, tryPushOrDrop |
+| | PartAssembler | 2 (AssembledBody + ElecPartSet) | FinishedGuitar(newId) 생성, tryPushOrDrop |
+| Packager (`packager/`) | Packager | 1 | FinishedGuitar 소비, Packaged + Completed publish, 출력 없음 |
 
 ### 새 product ID 발급 규칙
 
@@ -164,15 +169,17 @@ Packager는 일반 Machine이지만 `process()`가 input을 소비하고 output�
 
 ### 다중 입력 처리
 
-BodyAssembler / PartAssembler / ElecPartCollector는 종류별 입력 필요.
+BodyAssembler / PartAssembler / ElecPartCollector는 종류별 입력 필요. 셋이 동일한 typedBuffer 패턴을 쓰므로 `MultiInputMachine` 공통 추상 base로 추출 (machine/multiple/).
 
-- `Assembler` / `Collector` 추상이 `unordered_map<ProductType, vector<unique_ptr<Product>>>` typedBuffer 보유
+- `MultiInputMachine`은 `unordered_map<ProductType, vector<unique_ptr<Product>>>` typedBuffer 보유
 - `acceptProduct` override: product type 보고 해당 typedBuffer push
-- `canStart` override: 모든 필요 type에 1개 이상 있는지 검사
-- ProcessingState.onEnter에서 currentProduct 채울 때도 자식이 typedBuffer에서 종류별 1개씩 move (Machine에 `gatherInputs()` 가상 메서드 별도 필요)
-- BodyAssembler는 painted BodyPart만 와야 함 — 정상 토폴로지에서 Painter 거친 것만 도착 → unpainted body 들어오면 assert (비정상)
+- `canStart` override: 모든 필요 type에 1개 이상 있는지 검사 + base의 Backpressure 분기 유지
+- `gatherInputs` override: typedBuffer에서 requiredTypes 순서대로 1개씩 currentProduct로 move
+- `process` override: currentProduct 모두를 inputs vector로 이전 → 자식 `makeOutput(inputs, newId)` 호출 → tryPushOrDrop → 성공 시 Completed publish
+- 자식 (`ElecPartCollector` / `BodyAssembler` / `PartAssembler`)은 생성자에서 requiredTypes 지정 + `makeOutput`만 override
+- BodyAssembler는 정상 토폴로지에서 Painter 거친 painted BodyPart만 도착 (검증 없음)
 
-> 동타입 다중 입력 (예: head-head-neck) 가드는 추가 안 함 — 현재 파이프라인 구조상 발생 불가능
+> 동타입 다중 입력 (예: head-head-neck) 가드 / 잘못된 type 유입 가드 추가 안 함 — 현재 파이프라인 구조상 발생 불가능
 
 ### 이벤트 발행 정리
 
@@ -216,20 +223,34 @@ Statistics가 룩업:
 
 ## 테스트
 
-`tests/phase_3_machine.cpp` (mock Conveyor + 더미 broker):
+phase별 분리:
 
-- IdleState → ProcessingState 전이: inputBuffer에 requiredCount만큼 push → 1틱 후 ProcessingState
-- ProcessingState 진행: processingTick 증가, processingTime 도달 시 process() 호출 + Completed publish + IdleState 복귀
-- BrokenState 전이: forceBreak() → 다음 update에서 BrokenState 진입, Fault publish, statistics.breakdowns++
-- repair() 호출: BrokenState → ProcessingState (processingTick > 0) 혹은 IdleState 복귀, Resume publish
-- **Backpressure 폴링**: Backpressure 모드 머신, outputConveyor가 가득찬 상태 → canStart false → IdleState 머무름. 슬롯 빈 후엔 canStart true로 자동 재개. **이벤트 구독 검증 없음** (의도적으로 없음)
-- Fault cascade: SmartFactory 모드, broker.publish(Fault, downstreamMachine.id) → 대상 Machine `pendingDownstreamFaults_++` → canStart false. broker.publish(Resume, downstreamMachine.id) → 카운터-- → 0이면 재개. 복수 하류 동시 Fault 시 모두 Resume될 때까지 정지 유지 (refcount 검증)
-- 다중 입력 (BodyAssembler): typedBuffer에 head/neck/paintedBody 각 1 → canStart true, process() 호출. 한 종류만 있으면 canStart false
-- Spawner Drop 모드: 매 processingTime 주기마다 1개 spawn, tryPushOrDrop. 가득찬 conveyor에 push 시도 → Drop publish, product 폐기, **Spawned는 그 직전에 이미 발행됨**
-- Spawner Backpressure 모드: outputConveyor 가득찬 상태에서 canStart false → spawn skip (Spawned 미발행)
-- **통합: Spawner → 가득찬 Conveyor (Drop 모드)** — Spawned → Drop 순서로 발행되어 Statistics: `lost(sourceCount)`, `wip net 0`
-- **통합: BodyAssembler → 가득찬 Conveyor (Drop 모드)** — Drop event의 productType=AssembledBody → Statistics: `lost += 3, wip -= 3`
-- 새 product id 발급: 1→1 변환(Cutter)도 output에 ProductIdGen.next() 발급, input id와 다름을 검증
+| 파일 | 대상 | 케이스 수 |
+|---|---|---|
+| `tests/phase_3_machine.cpp` | State 패턴 + Machine 추상 (TestMachine 스텁) | 12 |
+| `tests/phase_3_spawners.cpp` | Spawner 3종 | 9 |
+| `tests/phase_3_cutters.cpp` | Cutter 3종 | 8 |
+| `tests/phase_3_painter.cpp` | Painter | 3 |
+| `tests/phase_3_collector.cpp` | ElecPartCollector | 8 |
+| `tests/phase_3_assemblers.cpp` | BodyAssembler + PartAssembler | 7 |
+| `tests/phase_3_packager.cpp` | Packager + Statistics 통합 | 6 |
+| `tests/phase_3_integration.cpp` | 13머신 파이프라인 end-to-end | 2 |
+
+핵심 시나리오:
+
+- 상태 전이 (Idle → Processing → Idle/Broken, Broken → repair → 복귀)
+- Health drop (bp=1.0 시 매 틱 -1, 0 도달 시 Broken)
+- forceBreak → Idle/Processing에서 자연스러운 Broken 전이
+- repair(tick): processingTick > 0 시 ProcessingState 복귀 + processingTick/currentProduct 보존 (resume), 아니면 Idle
+- Backpressure 폴링: canStart 사전 차단, conveyor 빈 후 자동 재개 (이벤트 구독 검증 없음)
+- Fault cascade handle(): `pendingDownstreamFaults_` 증감으로 canStart 영향
+- tryPushOrDrop Drop 모드: 가득찬 conveyor 시 Drop publish + Completed 미발행
+- Spawner Drop 모드: Spawned 먼저 + tryPushOrDrop으로 Drop 추가 (회계 net 0)
+- Spawner Backpressure 모드: spawn skip (Spawned 미발행)
+- MultiInputMachine: 종류별 충족 검사, gatherInputs 종류별 1개씩, output 생성 시 새 id
+- Drop 시 productType이 정확해서 Statistics가 sourceCount 룩업으로 정확한 lost/wip 가감 (AssembledBody → -3, FinishedGuitar → -5)
+- Packager 통합: 5번 Spawned → 1 Packaged FinishedGuitar → `wip=0, finished=1` 회계 닫힘
+- Full 파이프라인: 13머신 + 12conveyor wire, 200 틱 → `finished > 0, lost=0, breakdowns=0`, 총 spawn = finished×5 + lost + wip
 
 ## 산출 브랜치
 
@@ -237,5 +258,6 @@ Statistics가 룩업:
 
 ## 후속
 
-- `gatherInputs` 가상 메서드 시그니처 확정 (구현 시)
-- Backpressure 이벤트의 실제 publisher 결정 (phase 6 — 후보: Machine이 suspended 전이 시점에 1회 publish, sourceId=conveyor.id 또는 machine.id)
+- Backpressure 이벤트의 실제 publisher 결정 (phase 6 — 후보: Machine이 suspended 전이 시점에 1회 publish)
+- Fault cascade 토픽 구독 등록 (phase 6 Factory.applyConfig)
+- RNG / ProductIdGen 보유 주체 확정 (phase 6 Factory)

@@ -17,10 +17,10 @@
 - 시나리오는 JSON 파일 (`scenarios/*.json`), `ScenarioLoader`가 파싱 후 Factory의 create 호출 시퀀스로 변환
 - 객체 생성은 Factory 패턴 — `factory.createMachine(type, id, params...)` 시그니처
 - 시나리오 5종 (`Normal` / `Breakdowns` / `Bottleneck` / `Overflow` / `SmartFactory`)
-- Conveyor 오버플로우는 시나리오별 정책 — 일반 4종: `Drop` (드롭 + lost 카운트), SmartFactory: `Backpressure` (직전 Machine에 publish)
-- **Product 소유권**: `std::unique_ptr<Product>` 체인. Spawner `make_unique` → Conveyor 슬롯 / Machine 버퍼는 `unique_ptr<Product>` 보관 → `std::move`로 전달. Packager `process()` / Conveyor drop에서 unique_ptr 소멸로 자동 해제. Machine은 처리 중 `currentProduct_`로 잠시 보유만.
-- **EventBroker 토픽 모델**: `subscribe(EventType, IEventHandler*)` 외에 `subscribe(EventType, sourceId, IEventHandler*)` 토픽 구독 추가. publish 시 (type, *) + (type, sourceId) 양쪽 디스패치. Backpressure 캐스케이드 / per-machine 로그 등 source-aware 구독 가능. `subscribeAll`은 EventLog 전용 와일드카드 유지.
-- **상류 정지/재개 (conveyor 포화)**: Backpressure 모드 한정. Machine은 자신의 `outputConveyor.id`에 대한 `(Backpressure, conveyor.id)` 토픽을 구독, 수신 시 일시정지 상태로 진입. 실제 재개는 매 틱 `outputConveyor.canAccept()` 폴링으로 자연 복귀 (이벤트 페어링 불필요). Drop 모드는 상류 정지 없음.
+- Overflow 정책은 Machine 멤버 (`outputOverflowMode_`). Drop 시나리오: push 실패 시 Machine이 직접 `Drop` publish + product 폐기. SmartFactory(Backpressure): canStart 폴링으로 사전 차단되어 push 자체가 발생 안 함. Conveyor는 단순 슬롯 버퍼 (가득찬 슬롯에 push 도달 시 std::abort).
+- **Product 소유권**: `std::unique_ptr<Product>` 체인. Spawner `make_unique` → Conveyor 슬롯 / Machine 버퍼는 `unique_ptr<Product>` 보관 → `std::move`로 전달. Packager `process()` / Machine의 Drop 분기에서 unique_ptr 소멸로 자동 해제. Machine은 처리 중 `currentProduct_`로 잠시 보유만.
+- **EventBroker 토픽 모델**: `subscribe(EventType, IEventHandler*)` 외에 `subscribe(EventType, sourceId, IEventHandler*)` 토픽 구독 추가. publish 시 (type, *) + (type, sourceId) 양쪽 디스패치. Fault cascade / per-machine 로그 등 source-aware 구독 가능. `subscribeAll`은 EventLog 전용 와일드카드 유지.
+- **상류 정지/재개 (conveyor 포화)**: Backpressure 모드 한정. Machine의 `canStart()`가 `outputConveyor.canAccept()` 폴링으로 사전 차단. 이벤트 구독/페어링 없이 polling만으로 cascade가 물리적으로 자연 전파 (하류 막힘 → 상류 conveyor 차오름 → 상류 머신 polling으로 정지). Drop 모드는 상류 정지 없음.
 - **Fault cascade (하류 머신 고장)**: SmartFactory 한정. Factory.applyConfig가 DAG 하류 transitive closure를 계산해 각 Machine을 모든 하류 머신의 `(Fault, x.id)` / `(Resume, x.id)` 토픽에 구독 등록. `pendingDownstreamFaults_` refcount로 복수 동시 고장 처리. `Resume` 발행은 `Machine.repair()` 내부에서 sourceId=machine.id로 (Technician/instantRepair 경로 공통). Drop 시나리오는 구독 등록 자체를 skip — Machine 클래스 분기 없음, Factory 와이어링에서만 분기.
 - **수리 우선순위 동률**: Packager 의존성 거리 기준 정적 테이블, 동일 priority 내에서는 Fault 큐 진입 FIFO.
 - **테스트**: 각 phase는 GoogleTest 단위 테스트 동반 (Phase 0에서 CMakeLists에 `FetchContent_Declare(googletest)` + `enable_testing()` 추가). 테스트는 `tests/` 하위에 phase별 파일.
@@ -66,16 +66,22 @@
 
 - [x] `SimulationObject` 추상 — `update(tick)`, `getId()`, EventBroker 참조 보유
 - [x] `Conveyor` — 슬롯 배열, 매 틱 shift, 출구 슬롯이 downstream `inputBuffer`로 push
-- [x] `Conveyor` 오버플로우 분기 — `OverflowMode`(Drop/Backpressure) 멤버 + `dropAndLog(Product*)` / `publishBackpressure()` 메서드 분리. 시나리오 JSON에서 conveyor당 모드 지정
+- [x] Conveyor는 overflow 책임 없음 (후속 refactor PR에서 Machine으로 이전, push가 가득찬 슬롯에 도달 시 std::abort)
 
 ## Phase 3 — Machine + State 패턴
 
 브랜치: `back/feat/machines`. 상세: [phase_3_machine.md](phases/phase_3_machine.md)
 
-- [ ] `Machine` 추상 — `inputBuffer`, `outputConveyor`, `health`, `processingTick`, `IMachineState*` (싱글톤 참조)
-- [ ] `IMachineState` + `IdleState` / `ProcessingState` / `BrokenState` 싱글톤
-- [ ] `Spawner` 추상 (Machine 하위, `requiredCount=0`) + WoodSpawner / BridgeSpawner / PickupSpawner
-- [ ] `Cutter` 추상 + 3종, `Painter`, `Assembler` 추상 + 2종, `ElecPartCollector`, `Packager`
+- [x] `Machine` 추상 — `inputBuffer`, `outputConveyor`, `health`, `processingTick`, `outputOverflowMode`, RNG, ProductIdGen, `IMachineState*` 싱글톤 참조
+- [x] `IMachineState` + `MachineIdleState` / `MachineProcessingState` / `MachineBrokenState` 싱글톤 (Technician과의 이름 충돌 회피용 접두사)
+- [x] `tryPushOrDrop` helper (Drop 모드 push 분기를 한 곳에 모음)
+- [x] `Spawner` 추상 (Machine 하위, `requiredCount=0`) + WoodSpawner / BridgeSpawner / PickupSpawner
+- [x] `Cutter` 추상 + 3종 (HeadCutter/NeckCutter/BodyCutter)
+- [x] `Painter` (단독)
+- [x] `MultiInputMachine` 공통 추상 (typedBuffer 보유) + `ElecPartCollector` + `BodyAssembler` + `PartAssembler`
+- [x] `Packager` (sink, outputConveyor 없음)
+- [x] 디렉토리 분리: `machine/{spawner,cutter,painter,multiple/{collector,assembler},packager}/`
+- [x] 통합 시나리오 테스트 (13머신 파이프라인 end-to-end, Statistics 회계 검증)
 
 ## Phase 4 — Technician + State 패턴
 
