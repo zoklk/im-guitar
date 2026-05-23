@@ -28,6 +28,8 @@ subscribe(EventType, sourceId, IEventHandler*)    // 토픽 (type, source) 한�
 subscribeAll(IEventHandler*)                       // 와일드카드 (EventLog 전용)
 publish(Event)                                     // 큐에 적재, 즉시 호출 X
 flush()                                            // 큐 비우며 매칭 구독자 handle() 호출
+clearQueue()                                       // 미디스패치 잔량 폐기 (Reset cmd용)
+queueSize() const                                  // 큐 잔량 (테스트/검증용)
 ```
 
 내부 자료:
@@ -39,6 +41,8 @@ flush()                                            // 큐 비우며 매칭 구�
 dispatch 순서 (한 이벤트 당): globalSubs → typeSubs[type] → topicSubs[type][sourceId]. 중복 등록 시 중복 호출 가능성 — 구독자 측에서 idempotent하게 작성.
 
 publish는 즉시 디스패치 X, 매 틱 끝에 SimulationRunner가 `flush()` 호출해 일괄 소비.
+
+**flush 루프 정책**: 단순 `while (!queue.empty())` 루프. handler가 flush 도중 publish하면 같은 flush 사이클에서 연쇄 처리됨. 단, 정상 설계에선 handler는 상태 mutation만 하고 publish는 다음 update()로 미룸 (Backpressure cascade도 다음 틱 Conveyor.update에서 자연 전파). 재진입 publish가 정말 필요한 케이스가 미래에 발생하면 그때 swap 패턴 도입.
 
 ### `Product` 계층
 
@@ -55,7 +59,9 @@ Product (추상)
 
 전역 ID는 `ProductIdGen` (atomic counter) — Product에 static 두는 것보다 SRP 측면에서 분리. **Factory가 1개 소유, Spawner 생성 시 `idGen_&` 참조 주입** (`rng_` / `statistics_` / `broker_`와 동일한 DI 패턴). Spawner.process()에서 `id = idGen_.next()`. 글로벌 정적 싱글톤 (`ProductIdGen::next()`) 안 씀 — 테스트 격리 / 메멘토 직렬화 / 의존성 그래프 일관성 위해.
 
-카운터 값은 `FactorySnap.productIdCounter`로 직렬화 → rewind 후에도 ID 단조 증가 보존 (Phase 0의 FactorySnap에 필드 추가됨).
+API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `setCounter(int)` (메멘토 복원용 강제 설정).
+
+카운터 값은 `FactorySnap.productIdCounter`로 직렬화 → rewind 후 `setCounter()`로 복원해 ID 단조 증가 보존 (Phase 0의 FactorySnap에 필드 추가됨).
 
 소유 흐름 명세:
 - Spawner: `auto p = std::make_unique<RawWood>();` → `outputConveyor->push(std::move(p))`
@@ -67,22 +73,39 @@ Product (추상)
 
 ### `Statistics`
 
-단순 카운터 4종: `finished` / `wip` / `breakdowns` / `lost`. getter + incrementer만. 호출자:
-- `finished`: Packager가 출고 시 ++
-- `wip`: Spawner가 생성 시 ++, Packager가 출고 시 --, Conveyor.dropAndLog 시 -- (drop된 제품도 공정에서 제거되므로)
-- `breakdowns`: BrokenState.onEnter ++
-- `lost`: Conveyor.dropAndLog ++
+단순 카운터 4종: `finished` / `wip` / `breakdowns` / `lost`. getter + incrementer + `decWip()` + `reset()`. 호출자:
+- `finished`: Packager가 출고 시 `incFinished()`
+- `wip`: Spawner가 생성 시 `incWip()`, Packager가 출고 시 `decWip()`, Conveyor.dropAndLog 시 `decWip()` (drop된 제품도 공정에서 제거되므로)
+- `breakdowns`: BrokenState.onEnter `incBreakdowns()`
+- `lost`: Conveyor.dropAndLog `incLost()`
+- `reset()`: Reset cmd 경로에서 호출, 4 카운터 모두 0으로
 
-> wip는 "현재 공정 중인 제품 수" 정의. 따라서 drop 시에도 wip--를 같이 호출해야 일관. `dropAndLog`가 단일 호출 지점이므로 거기서 묶어서 처리
+> wip는 "현재 공정 중인 제품 수" 정의. 따라서 drop 시에도 decWip를 같이 호출해야 일관. `dropAndLog`가 단일 호출 지점이므로 거기서 묶어서 처리
 
 ### `EventLog`
 
 - `IEventHandler` 구현. 생성자에서 `broker.subscribeAll(this)` 호출
-- 내부 `deque<LogEntry>`, max 200, FIFO drop
-- `handle(Event)`이 Event → 텍스트 변환 후 push
-- `getLogs()` getter — Factory.snapshot()이 호출해 `FactorySnap.logs`에 복사
+- 내부 `deque<LogEntry>`, `static constexpr size_t kMaxEntries = 200`, FIFO drop
+- `handle(Event)`이 Event → `"[<type-name>] <sourceId>"` 텍스트 변환 후 push. EventType→string 헬퍼는 `EventLog.cpp` 익명 namespace 내부 (외부 비노출)
+- `getLogs()` getter — `deque → vector` 복사 반환. Factory.snapshot()이 호출해 `FactorySnap.logs`에 복사
+- `size()` getter — 테스트/검증용
 - `clear()` — ClearLog cmd 처리용
 - `appendDirect(LogEntry)` — Conveyor.dropAndLog 같은 EventBroker 안 거치는 케이스 대응
+
+## 파일 배치
+
+```
+src/model/
+├── event/    EventBroker.{h,cpp}  EventLog.{h,cpp}
+├── product/  Product.h (추상 + 9종 derived 1파일)  ProductIdGen.h
+└── stats/    Statistics.h
+```
+
+Product derived 9종은 데이터 거의 없어 한 헤더에 모음. Statistics / ProductIdGen은 inline 가능해서 헤더 only.
+
+## 빌드 인프라
+
+CMake에 `model_lib` static library 추가 (`src/model/*.cpp` GLOB_RECURSE). PUBLIC include 경로로 model/event/product/stats 노출. `app`과 `unit_tests` 양쪽이 model_lib에 링크. 후속 Phase 2~에서 추가되는 모든 `src/model/**/*.cpp`는 자동으로 model_lib에 흡수되므로 별도 CMake 와이어링 불필요.
 
 ## 의존성
 

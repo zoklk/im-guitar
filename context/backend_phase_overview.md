@@ -54,10 +54,11 @@
 
 브랜치: `back/feat/event-data`. 상세: [phase_1_event_data.md](phases/phase_1_event_data.md)
 
-- [ ] `EventBroker` — subscribe / publish / flush
-- [ ] `Product` 추상 + 9종 + 전역 ID 카운터
-- [ ] `Statistics` — finished / wip / breakdowns / lost
-- [ ] `EventLog` — 텍스트 로그 max 200, FIFO drop, EventBroker 구독
+- [x] `EventBroker` — subscribe / publish / flush / clearQueue (단순 큐 루프, global→type→topic 디스패치)
+- [x] `Product` 추상 + 9종 + `ProductIdGen` (atomic, next/peek/setCounter)
+- [x] `Statistics` — finished / wip / breakdowns / lost + reset
+- [x] `EventLog` — 텍스트 로그 max 200, FIFO drop, EventBroker subscribeAll 자동 등록
+- [x] CMake `model_lib` static library 추출 (app/unit_tests 공통 링크, 후속 phase의 src/model/*.cpp 자동 흡수)
 
 ## Phase 2 — SimulationObject & Conveyor
 
