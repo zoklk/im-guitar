@@ -74,22 +74,50 @@ endif()
 target_link_libraries(imgui PUBLIC OpenGL::GL)
 
 # ---------------------------------------------------------------------------
-# Application — model / view / controller / common / main.cpp
+# model_lib — backend 도메인 코드 (model/*.cpp)
+#   app과 unit_tests가 공통으로 링크. main.cpp / view / controller는 제외.
 # ---------------------------------------------------------------------------
-file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/src/*.cpp"
+file(GLOB_RECURSE MODEL_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/model/*.cpp"
 )
+
+if(MODEL_SOURCES)
+    add_library(model_lib STATIC ${MODEL_SOURCES})
+    target_include_directories(model_lib PUBLIC
+        "${CMAKE_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/src/common"
+        "${CMAKE_SOURCE_DIR}/src/model"
+        "${CMAKE_SOURCE_DIR}/src/model/event"
+        "${CMAKE_SOURCE_DIR}/src/model/product"
+        "${CMAKE_SOURCE_DIR}/src/model/stats"
+    )
+    target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
+endif()
+
+# ---------------------------------------------------------------------------
+# Application — main.cpp + view + controller + model_lib
+# ---------------------------------------------------------------------------
+set(APP_SOURCES "${CMAKE_SOURCE_DIR}/src/main.cpp")
+file(GLOB_RECURSE VIEW_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/view/*.cpp"
+)
+file(GLOB_RECURSE CONTROLLER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/controller/*.cpp"
+)
+list(APPEND APP_SOURCES ${VIEW_SOURCES} ${CONTROLLER_SOURCES})
 
 add_executable(app ${APP_SOURCES})
 
 target_include_directories(app PRIVATE
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/src/common"
-    "${CMAKE_SOURCE_DIR}/src/model"
     "${CMAKE_SOURCE_DIR}/src/view"
     "${CMAKE_SOURCE_DIR}/src/controller"
 )
 target_link_libraries(app PRIVATE imgui nlohmann_json::nlohmann_json)
+if(TARGET model_lib)
+    target_link_libraries(app PRIVATE model_lib)
+endif()
 
 # Windows: GUI 서브시스템 + SDL2의 WinMain→main 어댑터(SDL2main) 명시 링크
 if(WIN32)
@@ -113,12 +141,14 @@ if(IMGUITAR_BUILD_TESTS)
         target_include_directories(unit_tests PRIVATE
             "${CMAKE_SOURCE_DIR}/src"
             "${CMAKE_SOURCE_DIR}/src/common"
-            "${CMAKE_SOURCE_DIR}/src/model"
         )
         target_link_libraries(unit_tests PRIVATE
             GTest::gtest_main
             nlohmann_json::nlohmann_json
         )
+        if(TARGET model_lib)
+            target_link_libraries(unit_tests PRIVATE model_lib)
+        endif()
         include(GoogleTest)
         gtest_discover_tests(unit_tests)
     endif()
