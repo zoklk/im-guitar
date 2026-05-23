@@ -13,7 +13,6 @@ Conveyor::Conveyor(std::string  id,
                    EventBroker& broker)
     : SimulationObject(broker),
       id_(std::move(id)),
-      length_(length),
       overflowMode_(mode),
       slots_(length) {}
 
@@ -30,31 +29,37 @@ void Conveyor::push(std::unique_ptr<Product> p, int tick) {
 }
 
 void Conveyor::update(int /*tick*/) {
-    if (slots_[length_ - 1] != nullptr && downstream_ != nullptr) {
-        downstream_->acceptProduct(std::move(slots_[length_ - 1]));
+    const int last = static_cast<int>(slots_.size()) - 1;
+
+    if (slots_[last] != nullptr && downstream_ != nullptr) {
+        downstream_->acceptProduct(std::move(slots_[last]));
     }
 
-    for (int i = length_ - 1; i >= 1; --i) {
+    for (int i = last; i >= 1; --i) {
         if (slots_[i] == nullptr && slots_[i - 1] != nullptr) {
             slots_[i] = std::move(slots_[i - 1]);
         }
     }
 }
 
-void Conveyor::onOverflow(std::unique_ptr<Product> /*p*/, int tick) {
+void Conveyor::onOverflow(std::unique_ptr<Product> p, int tick) {
     if (overflowMode_ == OverflowMode::Drop) {
-        publishDrop(tick);
+        publishDrop(p.get(), tick);
     } else {
         publishBackpressure(tick);
     }
+    // p는 함수 종료 시 unique_ptr 소멸로 자동 해제
 }
 
-void Conveyor::publishDrop(int tick) {
+void Conveyor::publishDrop(const Product* p, int tick) {
     Event ev;
     ev.type     = EventType::Drop;
     ev.sourceId = id_;
     ev.tick     = tick;
-    ev.payload  = nullptr;
+    if (p != nullptr) {
+        ev.productId   = p->getId();
+        ev.productType = p->getType();
+    }
     broker_.publish(ev);
 }
 
@@ -63,6 +68,5 @@ void Conveyor::publishBackpressure(int tick) {
     ev.type     = EventType::Backpressure;
     ev.sourceId = id_;
     ev.tick     = tick;
-    ev.payload  = nullptr;
     broker_.publish(ev);
 }

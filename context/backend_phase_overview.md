@@ -64,9 +64,9 @@
 
 브랜치: `back/feat/conveyor`. 상세: [phase_2_conveyor.md](phases/phase_2_conveyor.md)
 
-- [ ] `SimulationObject` 추상 — `update(tick)`, `getId()`, EventBroker 참조 보유
-- [ ] `Conveyor` — 슬롯 배열, 매 틱 shift, 출구 슬롯이 downstream `inputBuffer`로 push
-- [ ] `Conveyor` 오버플로우 분기 — `OverflowMode`(Drop/Backpressure) 멤버 + `dropAndLog(Product*)` / `publishBackpressure()` 메서드 분리. 시나리오 JSON에서 conveyor당 모드 지정
+- [x] `SimulationObject` 추상 — `update(tick)`, `getId()`, EventBroker 참조 보유
+- [x] `Conveyor` — 슬롯 배열, 매 틱 shift, 출구 슬롯이 downstream `inputBuffer`로 push
+- [x] `Conveyor` 오버플로우 분기 — `OverflowMode`(Drop/Backpressure) 멤버 + `dropAndLog(Product*)` / `publishBackpressure()` 메서드 분리. 시나리오 JSON에서 conveyor당 모드 지정
 
 ## Phase 3 — Machine + State 패턴
 

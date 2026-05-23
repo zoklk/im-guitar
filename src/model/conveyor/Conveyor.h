@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -34,16 +35,15 @@ public:
     void setDownstream(IMachine* m) { downstream_ = m; }
 
     // 테스트/디버깅 가시성
-    int            length() const { return length_; }
+    int            length() const { return static_cast<int>(slots_.size()); }
     const Product* slotAt(int i) const { return slots_[i].get(); }
 
 private:
     void onOverflow(std::unique_ptr<Product> p, int tick);
-    void publishDrop(int tick);
+    void publishDrop(const Product* p, int tick);
     void publishBackpressure(int tick);
 
     std::string                           id_;
-    int                                   length_;
     OverflowMode                          overflowMode_;
     std::vector<std::unique_ptr<Product>> slots_;
     IMachine*                             downstream_ = nullptr;

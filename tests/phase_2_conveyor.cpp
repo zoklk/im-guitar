@@ -98,7 +98,7 @@ TEST(Conveyor, OverflowDropPublishesDropEventAndUpdatesStats) {
     Conveyor c("C1", 1, OverflowMode::Drop, broker);
 
     // 사전 wip=1 (Spawner가 만들었다고 가정)
-    broker.publish({EventType::Started, "Spawner", 0, nullptr});
+    broker.publish({EventType::Started, "Spawner", 0, std::nullopt, std::nullopt});
     broker.flush();
     EXPECT_EQ(stats.getWip(), 1);
 

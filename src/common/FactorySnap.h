@@ -29,11 +29,10 @@ struct MachineSnap {
 };
 
 struct ConveyorSnap {
-    std::string                            id;
-    int                                    length       = 0;
-    std::string                            downstreamId;
-    OverflowMode                           overflowMode = OverflowMode::Drop;
-    std::vector<std::optional<ProductSnap>> slots;       // size == length, nullopt = 빈 슬롯
+    std::string                             id;
+    std::string                             downstreamId;
+    OverflowMode                            overflowMode = OverflowMode::Drop;
+    std::vector<std::optional<ProductSnap>> slots;       // size = conveyor length, nullopt = 빈 슬롯
 };
 
 struct TechnicianSnap {
