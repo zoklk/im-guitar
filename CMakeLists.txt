@@ -93,6 +93,13 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/sim"
         "${CMAKE_SOURCE_DIR}/src/model/conveyor"
         "${CMAKE_SOURCE_DIR}/src/model/machine"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/spawner"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/cutter"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/painter"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/multiple"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/collector"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/assembler"
+        "${CMAKE_SOURCE_DIR}/src/model/machine/packager"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
 endif()
