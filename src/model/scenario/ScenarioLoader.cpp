@@ -72,31 +72,45 @@ ScenarioConfig ScenarioLoader::load(ScenarioType type) {
     cfg.type = type;
     cfg.name = j.value("name", std::string{});
 
-    for (const auto& jm : j.at("machines")) {
-        MachineDef m;
-        m.type             = parseMachineType(jm.at("type").get<std::string>());
-        m.id               = jm.at("id").get<std::string>();
-        m.processingTime   = jm.at("processingTime").get<int>();
-        m.breakdownProb    = jm.at("breakdownProb").get<double>();
-        m.requiredCount    = jm.at("requiredCount").get<int>();
-        m.outputConveyorId = jm.value("outputConveyorId", std::string{});
-        cfg.machines.push_back(std::move(m));
-    }
-
-    for (const auto& jc : j.at("conveyors")) {
-        ConveyorDef c;
-        c.id           = jc.at("id").get<std::string>();
-        c.length       = jc.at("length").get<int>();
-        c.downstreamId = jc.at("downstreamId").get<std::string>();
-        c.overflowMode = parseOverflowMode(jc.at("overflowMode").get<std::string>());
-        cfg.conveyors.push_back(std::move(c));
-    }
-
-    for (const auto& jt : j.at("technicians")) {
-        TechnicianDef t;
-        t.id         = jt.at("id").get<std::string>();
-        t.repairTime = jt.at("repairTime").get<int>();
-        cfg.technicians.push_back(std::move(t));
+    // 머신/컨베이어/테크니션 파싱은 try-catch로 감싸 어느 인덱스에서 실패했는지 명시.
+    // nlohmann::json::out_of_range는 키 누락, type_error는 타입 불일치.
+    try {
+        size_t idx = 0;
+        for (const auto& jm : j.at("machines")) {
+            MachineDef m;
+            m.type             = parseMachineType(jm.at("type").get<std::string>());
+            m.id               = jm.at("id").get<std::string>();
+            m.processingTime   = jm.at("processingTime").get<int>();
+            m.breakdownProb    = jm.at("breakdownProb").get<double>();
+            m.requiredCount    = jm.at("requiredCount").get<int>();
+            m.maxHealth        = jm.value("maxHealth", 10);                     // 미지정 시 default 10
+            m.outputConveyorId = jm.value("outputConveyorId", std::string{});
+            cfg.machines.push_back(std::move(m));
+            ++idx;
+        }
+        idx = 0;
+        for (const auto& jc : j.at("conveyors")) {
+            ConveyorDef c;
+            c.id           = jc.at("id").get<std::string>();
+            c.length       = jc.at("length").get<int>();
+            c.downstreamId = jc.at("downstreamId").get<std::string>();
+            c.overflowMode = parseOverflowMode(jc.at("overflowMode").get<std::string>());
+            cfg.conveyors.push_back(std::move(c));
+            ++idx;
+        }
+        idx = 0;
+        for (const auto& jt : j.at("technicians")) {
+            TechnicianDef t;
+            t.id         = jt.at("id").get<std::string>();
+            t.repairTime = jt.at("repairTime").get<int>();
+            t.name       = jt.value("name", t.id);                             // 미지정 시 id 사용
+            cfg.technicians.push_back(std::move(t));
+            ++idx;
+        }
+    } catch (const std::runtime_error&) {
+        throw;   // parseMachineType / parseOverflowMode가 던진 것은 그대로 통과
+    } catch (const std::exception& e) {
+        throw std::runtime_error("ScenarioLoader: schema error in '" + path + "': " + e.what());
     }
 
     return cfg;

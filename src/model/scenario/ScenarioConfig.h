@@ -14,6 +14,7 @@ struct MachineDef {
     int         processingTime   = 1;
     double      breakdownProb    = 0.0;
     int         requiredCount    = 1;
+    int         maxHealth        = 10;     // JSON에 명시 안 하면 default 10
     std::string outputConveyorId;          // Packager는 ""
 };
 
@@ -25,7 +26,8 @@ struct ConveyorDef {
 };
 
 struct TechnicianDef {
-    std::string id;
+    std::string id;                       // 내부 식별자 (예: "TECH_1")
+    std::string name;                     // UI 표시용 (예: "jincheol"). 미지정 시 id 사용.
     int         repairTime = 3;
 };
 

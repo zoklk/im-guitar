@@ -73,6 +73,7 @@ struct FactorySnap {
     StatisticsSnap stats;
 
     std::vector<LogEntry> logs;
-    std::vector<Event>    pendingEvents;   // EventBroker 큐 잔량 (메멘토 정확도)
-    std::string           rngState;        // std::mt19937 직렬화 문자열
+    std::vector<Event>    pendingEvents;     // EventBroker 큐 잔량 (메멘토 정확도)
+    std::string           rngState;          // std::mt19937 직렬화 문자열
+    int                   productIdCounter   = 0;   // ProductIdGen.peek() — rewind 후 ID 단조성 보존
 };

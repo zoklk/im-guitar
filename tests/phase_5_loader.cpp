@@ -33,6 +33,22 @@ TEST(PhaseLoader, LoadsNormalScenario) {
     EXPECT_EQ(cfg.technicians.size(), 2u);
 }
 
+TEST(PhaseLoader, TechnicianNamesAreJincheolAndJaeyong) {
+    auto cfg = loadOne(ScenarioType::Normal);
+    ASSERT_EQ(cfg.technicians.size(), 2u);
+    EXPECT_EQ(cfg.technicians[0].id, "TECH_1");
+    EXPECT_EQ(cfg.technicians[0].name, "jincheol");
+    EXPECT_EQ(cfg.technicians[1].id, "TECH_2");
+    EXPECT_EQ(cfg.technicians[1].name, "jaeyong");
+}
+
+TEST(PhaseLoader, AllMachinesHaveMaxHealthTen) {
+    auto cfg = loadOne(ScenarioType::Normal);
+    for (const auto& m : cfg.machines) {
+        EXPECT_EQ(m.maxHealth, 10) << "machine id=" << m.id;
+    }
+}
+
 TEST(PhaseLoader, LoadsBreakdownsScenario) {
     auto cfg = loadOne(ScenarioType::Breakdowns);
     EXPECT_EQ(cfg.name, "Breakdowns");
@@ -177,4 +193,57 @@ TEST(PhaseLoader, UnknownOverflowModeThrows) {
 
     ScenarioLoader loader(dir.str());
     EXPECT_THROW(loader.load(ScenarioType::Normal), std::runtime_error);
+}
+
+TEST(PhaseLoader, MachineMaxHealthDefaultsToTenWhenAbsent) {
+    TempScenarioDir dir("default_maxhealth");
+    dir.write("normal.json", R"({
+        "name": "Bare",
+        "machines": [
+            { "type": "WoodSpawner", "id": "X", "processingTime": 1, "breakdownProb": 0.0, "requiredCount": 0, "outputConveyorId": "" }
+        ],
+        "conveyors": [],
+        "technicians": []
+    })");
+    ScenarioLoader loader(dir.str());
+    auto cfg = loader.load(ScenarioType::Normal);
+    ASSERT_EQ(cfg.machines.size(), 1u);
+    EXPECT_EQ(cfg.machines[0].maxHealth, 10);
+}
+
+TEST(PhaseLoader, TechnicianNameDefaultsToIdWhenAbsent) {
+    TempScenarioDir dir("default_techname");
+    dir.write("normal.json", R"({
+        "name": "Bare",
+        "machines": [],
+        "conveyors": [],
+        "technicians": [
+            { "id": "T_X", "repairTime": 3 }
+        ]
+    })");
+    ScenarioLoader loader(dir.str());
+    auto cfg = loader.load(ScenarioType::Normal);
+    ASSERT_EQ(cfg.technicians.size(), 1u);
+    EXPECT_EQ(cfg.technicians[0].name, "T_X");
+}
+
+// 누락된 필수 필드 → 에러 메시지에 파일 경로가 포함되는지 (D: 에러 메시지 개선 검증).
+TEST(PhaseLoader, MissingRequiredFieldErrorMentionsPath) {
+    TempScenarioDir dir("missing_field");
+    dir.write("normal.json", R"({
+        "name": "Bad",
+        "machines": [
+            { "type": "WoodSpawner", "id": "X" }
+        ],
+        "conveyors": [],
+        "technicians": []
+    })");
+    ScenarioLoader loader(dir.str());
+    try {
+        loader.load(ScenarioType::Normal);
+        FAIL() << "expected runtime_error";
+    } catch (const std::runtime_error& e) {
+        const std::string msg = e.what();
+        EXPECT_NE(msg.find("normal.json"), std::string::npos) << "msg=" << msg;
+    }
 }
