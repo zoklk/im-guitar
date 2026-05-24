@@ -15,7 +15,8 @@ MultiInputMachine::MultiInputMachine(std::string              id,
                                      OverflowMode             outputOverflowMode,
                                      EventBroker&             broker,
                                      std::mt19937&            rng,
-                                     ProductIdGen&            idGen)
+                                     ProductIdGen&            idGen,
+                                     int                      maxHealth)
     : Machine(std::move(id),
               type,
               processingTime,
@@ -24,7 +25,8 @@ MultiInputMachine::MultiInputMachine(std::string              id,
               outputOverflowMode,
               broker,
               rng,
-              idGen),
+              idGen,
+              maxHealth),
       requiredTypes_(std::move(requiredTypes)) {}
 
 void MultiInputMachine::acceptProduct(std::unique_ptr<Product> p) {

@@ -9,7 +9,8 @@ Packager::Packager(std::string   id,
                    double        breakdownProb,
                    EventBroker&  broker,
                    std::mt19937& rng,
-                   ProductIdGen& idGen)
+                   ProductIdGen& idGen,
+                   int           maxHealth)
     : Machine(std::move(id),
               MachineType::Packager,
               processingTime,
@@ -18,7 +19,8 @@ Packager::Packager(std::string   id,
               /*outputOverflowMode=*/OverflowMode::Drop,   // outputConveyor 없으므로 미사용
               broker,
               rng,
-              idGen) {}
+              idGen,
+              maxHealth) {}
 
 void Packager::process(int tick) {
     if (currentProduct_.empty()) return;

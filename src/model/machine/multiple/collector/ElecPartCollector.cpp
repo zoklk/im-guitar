@@ -10,7 +10,8 @@ ElecPartCollector::ElecPartCollector(std::string   id,
                                      OverflowMode  outputOverflowMode,
                                      EventBroker&  broker,
                                      std::mt19937& rng,
-                                     ProductIdGen& idGen)
+                                     ProductIdGen& idGen,
+                                     int           maxHealth)
     : MultiInputMachine(std::move(id),
                         MachineType::ElecPartCollector,
                         processingTime,
@@ -19,7 +20,8 @@ ElecPartCollector::ElecPartCollector(std::string   id,
                         outputOverflowMode,
                         broker,
                         rng,
-                        idGen) {}
+                        idGen,
+                        maxHealth) {}
 
 std::unique_ptr<Product> ElecPartCollector::makeOutput(
     std::vector<std::unique_ptr<Product>> /*inputs*/, int newId) {

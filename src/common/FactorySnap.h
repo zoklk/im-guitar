@@ -18,6 +18,7 @@ struct MachineSnap {
     std::string              id;
     MachineType              type               = MachineType::WoodSpawner;
     int                      health             = 10;
+    int                      maxHealth          = 10;   // UI ProgressBar 분수 표시용 (health/maxHealth)
     int                      processingTime     = 6;
     int                      progress           = 0;
     double                   breakdownProb      = 0.0;

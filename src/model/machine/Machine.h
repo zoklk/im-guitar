@@ -38,7 +38,8 @@ public:
             OverflowMode  outputOverflowMode,
             EventBroker&  broker,
             std::mt19937& rng,
-            ProductIdGen& idGen);
+            ProductIdGen& idGen,
+            int           maxHealth = 10);
 
     ~Machine() override = default;
 
@@ -69,6 +70,7 @@ public:
     // Read-only 접근자 (Factory.snapshot / 테스트)
     MachineType  getType() const                { return type_; }
     int          getHealth() const              { return health_; }
+    int          getMaxHealth() const           { return maxHealth_; }
     int          getProcessingTick() const      { return processingTick_; }
     int          getProcessingTime() const      { return processingTime_; }
     double       getBreakdownProb() const       { return breakdownProb_; }
@@ -102,7 +104,8 @@ protected:
 
     std::string                            id_;
     MachineType                            type_;
-    int                                    health_                  = 10;
+    int                                    maxHealth_;
+    int                                    health_;
     int                                    processingTick_          = 0;
     int                                    processingTime_;
     double                                 breakdownProb_;

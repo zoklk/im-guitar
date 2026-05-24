@@ -21,7 +21,8 @@ public:
             OverflowMode  outputOverflowMode,
             EventBroker&  broker,
             std::mt19937& rng,
-            ProductIdGen& idGen);
+            ProductIdGen& idGen,
+            int           maxHealth = 10);
 
 protected:
     void process(int tick) override;

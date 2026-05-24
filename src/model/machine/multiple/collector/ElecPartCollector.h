@@ -21,7 +21,8 @@ public:
                       OverflowMode  outputOverflowMode,
                       EventBroker&  broker,
                       std::mt19937& rng,
-                      ProductIdGen& idGen);
+                      ProductIdGen& idGen,
+                      int           maxHealth = 10);
 
 protected:
     std::unique_ptr<Product> makeOutput(std::vector<std::unique_ptr<Product>> inputs,

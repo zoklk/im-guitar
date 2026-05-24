@@ -12,7 +12,8 @@ Spawner::Spawner(std::string   id,
                  OverflowMode  outputOverflowMode,
                  EventBroker&  broker,
                  std::mt19937& rng,
-                 ProductIdGen& idGen)
+                 ProductIdGen& idGen,
+                 int           maxHealth)
     : Machine(std::move(id),
               type,
               spawnInterval,
@@ -21,7 +22,8 @@ Spawner::Spawner(std::string   id,
               outputOverflowMode,
               broker,
               rng,
-              idGen) {}
+              idGen,
+              maxHealth) {}
 
 void Spawner::process(int tick) {
     const int  newId   = idGen_.next();
@@ -39,27 +41,30 @@ void Spawner::process(int tick) {
 // ── 구체 Spawner 3종 ─────────────────────────────────────────
 
 WoodSpawner::WoodSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
-                         EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen)
+                         EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                         int maxHealth)
     : Spawner(std::move(id), MachineType::WoodSpawner,
-              spawnInterval, bp, mode, broker, rng, idGen) {}
+              spawnInterval, bp, mode, broker, rng, idGen, maxHealth) {}
 
 std::unique_ptr<Product> WoodSpawner::makeProduct(int newId) {
     return std::make_unique<RawWood>(newId);
 }
 
 BridgeSpawner::BridgeSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
-                             EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen)
+                             EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                             int maxHealth)
     : Spawner(std::move(id), MachineType::BridgeSpawner,
-              spawnInterval, bp, mode, broker, rng, idGen) {}
+              spawnInterval, bp, mode, broker, rng, idGen, maxHealth) {}
 
 std::unique_ptr<Product> BridgeSpawner::makeProduct(int newId) {
     return std::make_unique<Bridge>(newId);
 }
 
 PickupSpawner::PickupSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
-                             EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen)
+                             EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                             int maxHealth)
     : Spawner(std::move(id), MachineType::PickupSpawner,
-              spawnInterval, bp, mode, broker, rng, idGen) {}
+              spawnInterval, bp, mode, broker, rng, idGen, maxHealth) {}
 
 std::unique_ptr<Product> PickupSpawner::makeProduct(int newId) {
     return std::make_unique<Pickup>(newId);
