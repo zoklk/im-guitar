@@ -100,8 +100,20 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/assembler"
         "${CMAKE_SOURCE_DIR}/src/model/machine/packager"
         "${CMAKE_SOURCE_DIR}/src/model/technician"
+        "${CMAKE_SOURCE_DIR}/src/model/memento"
+        "${CMAKE_SOURCE_DIR}/src/model/scenario"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
+endif()
+
+# ---------------------------------------------------------------------------
+# scenarios/ — JSON 시나리오 파일을 build output 디렉토리로 복사.
+#   ScenarioLoader가 baseDir 기본값 "scenarios"로 상대경로 로드. 실행 작업
+#   디렉토리(app / ctest 모두 build/) 기준 build/scenarios/*.json을 참조.
+# ---------------------------------------------------------------------------
+file(GLOB SCENARIO_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/scenarios/*.json")
+if(SCENARIO_FILES)
+    file(COPY ${SCENARIO_FILES} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scenarios")
 endif()
 
 # ---------------------------------------------------------------------------

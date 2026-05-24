@@ -50,15 +50,25 @@ struct StatisticsSnap {
     int lost       = 0;
 };
 
+// TechnicianManager.repairQueue_ 한 entry의 직렬화 표현.
+// rewind 시 큐 잔량 복원에 사용 (메멘토 정확도).
+struct RepairOrderSnap {
+    std::string machineId;
+    int         priority  = 0;
+    int         faultTick = 0;
+    int         seq       = 0;
+};
+
 struct FactorySnap {
     int          tick            = 0;
     ScenarioType scenario        = ScenarioType::Normal;
     int          speedMultiplier = 1;
     bool         running         = false;
 
-    std::vector<MachineSnap>    machines;
-    std::vector<ConveyorSnap>   conveyors;
-    std::vector<TechnicianSnap> technicians;
+    std::vector<MachineSnap>     machines;
+    std::vector<ConveyorSnap>    conveyors;
+    std::vector<TechnicianSnap>  technicians;
+    std::vector<RepairOrderSnap> pendingRepairs;   // TechnicianManager.repairQueue_ 직렬화
 
     StatisticsSnap stats;
 
