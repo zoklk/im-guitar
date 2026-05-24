@@ -90,7 +90,6 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/event"
         "${CMAKE_SOURCE_DIR}/src/model/product"
         "${CMAKE_SOURCE_DIR}/src/model/stats"
-        "${CMAKE_SOURCE_DIR}/src/model/sim"
         "${CMAKE_SOURCE_DIR}/src/model/conveyor"
         "${CMAKE_SOURCE_DIR}/src/model/machine"
         "${CMAKE_SOURCE_DIR}/src/model/machine/spawner"
@@ -100,6 +99,7 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/collector"
         "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/assembler"
         "${CMAKE_SOURCE_DIR}/src/model/machine/packager"
+        "${CMAKE_SOURCE_DIR}/src/model/technician"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
 endif()

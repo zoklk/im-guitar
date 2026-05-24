@@ -25,7 +25,7 @@ static <Concrete>& instance()
 ```
 
 자식:
-- **TechnicianIdleState**: update no-op. `targetMachine_ == nullptr` 보장. EngineerManager가 `assign()` 호출 시 외부에서 전이
+- **TechnicianIdleState**: update no-op. `targetMachine_ == nullptr` 보장. TechnicianManager가 `assign()` 호출 시 외부에서 전이
 - **TechnicianWorkingState**:
   - `onEnter`: `repairProgress_ = 0`
   - `update`: `repairProgress_++`. repairTime 도달 시 → `targetMachine_->repair()` → `targetMachine_ = nullptr` → `TechnicianIdleState` 전이
@@ -37,15 +37,27 @@ static <Concrete>& instance()
 ```
 targetMachine_: Machine*
 repairProgress_: int
-repairTime_: int (default 3)
+repairTime_: int (ctor 인자, 시나리오 튜닝 가능)
 currentState_: ITechnicianState*
 
 update(tick): currentState_->update(*this, tick)
-assign(Machine*): targetMachine_ = m; transitionTo(TechnicianWorkingState::instance())
+assign(Machine*, int tick):
+  assert(currentState_ == &TechnicianIdleState::instance())   // Working 중 재배정은 호출자 버그
+  assert(m != nullptr)
+  targetMachine_ = m
+  transitionTo(TechnicianWorkingState::instance(), tick)
+transitionTo(ITechnicianState&, int tick): onExit → swap → onEnter
 isIdle(): currentState_ == &TechnicianIdleState::instance()
 ```
 
-EngineerManager가 `assign()` 호출 → TechnicianWorkingState 진입 → 3틱 후 자동 복귀.
+TechnicianManager가 `assign()` 호출 → TechnicianWorkingState 진입 → repairTime틱 후 자동 복귀.
+
+**`targetMachine_` 불변 유지 정책**: assert 없이 진입점 제한으로 보장
+- 셋: `assign(m, tick)` 한 곳에서만 (nullptr → m)
+- 리셋: `WorkingState.update` 완료 분기 한 곳에서만 (m → nullptr)
+- 외부에서 직접 접근 불가 (private + assign 메서드만 노출)
+
+`Idle.update`에 `targetMachine_ == nullptr` assert 두지 않음 — 도달 불가능한 경로의 검증은 가치 낮음. 대신 `assign` 진입부의 `currentState_ == Idle` assert가 호출자 버그(double-assign)를 잡아 더 의미 있다.
 
 ### 이벤트 발행
 
@@ -60,6 +72,7 @@ Technician은 자체 이벤트 발행 없음. 수리 완료 시 `machine.repair(
 
 - **Technician → Machine 단방향** (`targetMachine_` 보유)
 - Machine은 누가 수리하는지 모름. snap의 `MachineSnap.assignedTechId`는 Factory.snapshot()이 Technician 목록을 훑어 derive
+- `TechnicianSnap`에 state 필드는 두지 않음 — Machine과 동일하게 `targetMachineId.has_value()` 또는 `repairProgress > 0`으로 Working/Idle을 derive. UI가 직접 표시할 때만 한 줄로 변환
 
 ## 의존성
 
@@ -69,13 +82,17 @@ Technician은 자체 이벤트 발행 없음. 수리 완료 시 `machine.repair(
 
 ## 테스트
 
-`tests/phase_4_technician.cpp` (mock Machine):
+`tests/phase_4_technician.cpp` (`SpyMachine` 스텁 — Machine 자식, process는 no-op):
 
-- TechnicianIdleState 시작: repairProgress 0, targetMachine null. update no-op
-- assign(mock) → TechnicianWorkingState 진입. onEnter에서 repairProgress 0 셋
-- 1~2틱 진행: repairProgress 증가, machine.repair 호출 안 됨
-- repairTime 도달 (3틱): machine.repair 호출 검증 (mock Machine 측에서 Resume publish 책임 — 본 테스트 범위 밖) + targetMachine null + TechnicianIdleState 복귀
-- isIdle() 정확성: TechnicianWorkingState 중 false, 복귀 후 true
+`Machine::repair`가 non-virtual이라 직접 hook 불가. forceBreak으로 health=0 진입시킨 뒤 repair 호출 시 health가 maxHealth로 복원되는 변화를 관찰해 간접 검증.
+
+- StartsInIdleStateWithNoTarget: 초기 상태 (Idle, targetMachine null, repairProgress 0)
+- IdleUpdateIsNoOp: Idle 상태에서 update 여러 번 호출해도 상태 불변
+- AssignTransitionsToWorkingAndResetsProgress: assign → Working 진입, onEnter가 repairProgress 0 셋
+- ProgressIncrementsWithoutTriggeringRepairBeforeRepairTime: 1~2틱 진행 시 progress 증가, health 여전히 0
+- ReachesRepairTimeTriggersRepairAndReturnsToIdle: 3틱 도달 시 health 복원 + Idle 복귀 + targetMachine null
+- RepairCompletionPublishesResumeAtCompletionTick: Machine.repair가 Resume 이벤트 발행 (sourceId=machine.id, tick=완료 시점)
+- CanReassignToAnotherMachineAfterCompletion: 한 사이클 완료 후 다른 머신 재배정 가능 (progress 0 리셋 검증)
 
 ## 산출 브랜치
 
