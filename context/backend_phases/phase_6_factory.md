@@ -20,7 +20,7 @@ conveyors_:    vector<unique_ptr<Conveyor>>
 technicians_:  vector<unique_ptr<Technician>>
 
 // 협력자 (참조 주입)
-broker_, eventLog_, statistics_, engineerManager_
+broker_, eventLog_, statistics_, technicianManager_
 
 // 시뮬 상태
 tick_: int
@@ -34,7 +34,7 @@ createTechnician(TechnicianDef) → Technician*
 applyConfig(ScenarioConfig)                    // 위 create들 일괄 호출 + 와이어링
 
 // 조회 (벡터 선형 검색)
-findMachine(string id) → Machine*              // EngineerManager용. machines_ 선형 스캔
+findMachine(string id) → Machine*              // TechnicianManager용. machines_ 선형 스캔
 findConveyor(string id) → Conveyor*
 
 // 도메인 메서드 (외부 cmd → Controller가 호출)
@@ -74,9 +74,11 @@ restore(FactorySnap): 메멘토 복원
 1. machines (Spawner 포함) update — base 포인터 루프
 2. conveyors update
 3. technicians update
-4. engineerManager update (Fault 큐 ↔ idle Technician 매칭)
+4. technicianManager update (Fault 큐 ↔ idle Technician 매칭)
 
 한 틱 내 흐름 일관성을 위해 명시 고정. concrete 타입 if/else 없음.
+
+> **순서 결정 근거**: machines를 먼저 update하면 같은 틱에 conveyor 출구가 downstream 머신의 inputBuffer로 들어가는 흐름이 한 틱 손해 없이 이어진다 (machine A가 conveyor 출구 슬롯을 비우기 전에 conveyor가 shift하면 출구가 두 번 비는 시점 발생). machine → conveyor → technician 순으로 고정해야 product 이동이 1틱 내 인접 객체까지만 전파되어 처리량 추정이 단순해진다.
 
 **start/pause/setSpeed는 Factory에 없음** — SimulationRunner 담당.
 
@@ -130,7 +132,7 @@ Factory.setScenario는 ScenarioLoader를 모름 — Controller가 두 호출 묶
 ### forceBreak / instantRepair 동작
 
 - **forceBreak**: `findMachine(id)` → `m.forceBreak()` 호출 → health = 0 설정. 다음 update 틱에서 ProcessingState/IdleState가 health 체크 후 자연스럽게 BrokenState 전이. 즉시 전이는 IdleState에서도 동작해야 하므로 IdleState.update에서도 health == 0 체크 추가 필요
-- **instantRepair**: `findMachine(id)` → `m.repair()` 직접 호출. Technician/EngineerManager 우회. 큐에 이미 있다면 매니저가 다음 update에서 idle 상태 발견 후 큐에서 자동 제외
+- **instantRepair**: `findMachine(id)` → `m.repair()` 직접 호출. Technician/TechnicianManager 우회. 큐에 이미 있다면 매니저가 다음 update에서 idle 상태 발견 후 큐에서 자동 제외
 
 ## 의존성
 
@@ -167,4 +169,4 @@ Factory.setScenario는 ScenarioLoader를 모름 — Controller가 두 호출 묶
 
 ## 후속
 
-- EngineerManager 큐 정리 (instantRepair 후 큐 잔존 머신 제거) 로직 — 매니저 update 진입부에서 큐 상단이 idle이면 pop
+- TechnicianManager 큐 정리 (instantRepair 후 큐 잔존 머신 제거) 로직 — 매니저 update 진입부에서 큐 상단이 idle이면 pop

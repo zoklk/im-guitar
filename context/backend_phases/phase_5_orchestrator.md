@@ -6,13 +6,13 @@ Factory에서 분리된 조정자 3종 + 시나리오 정의. 셋 다 서로 독
 
 ## 적용 패턴
 
-- **Observer**: `EngineerManager`가 Fault 구독자
+- **Observer**: `TechnicianManager`가 Fault 구독자
 - **Memento**: `MementoStore` (Caretaker), `FactorySnap` (Memento), `Factory` (Originator — Phase 6)
 - **Configuration Loader**: `ScenarioLoader`가 JSON → 시나리오 설정 객체로 변환
 
 ## 구성요소
 
-### `EngineerManager` (IEventHandler 구현)
+### `TechnicianManager` (IEventHandler 구현)
 
 ```
 technicians_: vector<Technician*>             // 참조만, 소유는 Factory
@@ -50,7 +50,7 @@ update(tick):
 
 - **동률 처리**: 우선순위 동일 시 Fault 발생 틱 → 큐 진입 sequence (FIFO). 결정론적, 메멘토 호환
 
-**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 Factory에 lookup 메서드 필요 (`Factory::findMachine(id)`). EngineerManager는 Factory 참조도 보유.
+**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 Factory에 lookup 메서드 필요 (`Factory::findMachine(id)`). TechnicianManager는 Factory 참조도 보유.
 
 ### `MementoStore`
 
@@ -142,26 +142,29 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 ### 틱 내 이벤트 처리
 
-- publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → EngineerManager 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
-- 명세상 명확하므로 EngineerManager.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
+- publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → TechnicianManager 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
+- 명세상 명확하므로 TechnicianManager.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
 
-### Event payload 타입 확정
+### Event payload 타입 확정 (Phase 3 단계에서 선반영)
 
-발행 시점별 페이로드 검토:
+`void*` 폐기. `Event`에 `std::optional<int> productId`, `std::optional<ProductType> productType` 추가. 발행 시점별 채움 규칙:
 
-| Event | payload 필요? |
-|---|---|
-| Fault | nullptr (sourceId로 머신 식별) |
-| Resume | nullptr |
-| Started | nullptr |
-| Completed | nullptr |
-| Backpressure | nullptr |
+| Event | productId | productType | publisher | 비고 |
+|---|---|---|---|---|
+| **Spawned** | new product | new product | Spawner | WIP 회계: wip += sourceCount (=1) |
+| **Packaged** | consumed FinishedGuitar | FinishedGuitar | Packager | WIP 회계: wip -= 5, finished++ |
+| **Drop** | 손실된 product | 손실된 product | Machine (push 실패 시) | WIP 회계: wip/lost -= sourceCount |
+| Started | 대표 input 1개 | 대표 input 1개 | 일반 Machine ProcessingState.onEnter | EventLog 라이프사이클 (WIP 영향 없음) |
+| Completed | output | output | 일반 Machine ProcessingState push 성공 시 | EventLog 라이프사이클 (WIP 영향 없음) |
+| Fault | nullopt | nullopt | Machine BrokenState.onEnter | sourceId=machine.id |
+| Resume | nullopt | nullopt | Machine.repair() 본체 | sourceId=machine.id (Fault cascade 트리거) |
+| Backpressure | nullopt | nullopt | (phase 6 결정) | EventLog 가시성 보조 |
 
-→ 현재 모든 케이스 nullptr 가능. **`void*` 그대로 유지**. variant 도입 불필요.
+이유: `void*`는 (1) 타입 안전성 0, (2) 수명 관리 불가 (publish 후 flush 사이 dangling), (3) 메멘토 직렬화 불가. 위 표의 정보는 (a) Statistics가 sourceCount 룩업으로 WIP/lost 회계, (b) EventLog가 사람이 읽을 수 있는 메시지 조합에 사용. variant 도입은 불필요 — optional 두 개로 충분.
 
 ## 의존성
 
-- EngineerManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), Phase 6 (Factory.findMachine)
+- TechnicianManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), Phase 6 (Factory.findMachine)
 - MementoStore: Phase 0 (FactorySnap)
 - ScenarioLoader: nlohmann/json (Phase 0)
 
