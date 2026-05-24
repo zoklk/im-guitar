@@ -65,6 +65,17 @@ clear()
 
 - SimulationRunner가 매 틱 push 호출 (Phase 6)
 - Rewind cmd: Controller가 호출 → 반환 snap을 `factory.restore(snap)`로 적용
+- 사이즈 캡 없음 (무제한 누적). 메모리 정책은 Phase 6/7에서 sliding window 검토.
+
+### 메멘토 정확도: TechnicianManager 큐 직렬화
+
+`FactorySnap.pendingRepairs: vector<RepairOrderSnap>` 추가 (Phase 0 FactorySnap 확장). 한 entry 구조:
+
+```
+struct RepairOrderSnap { string machineId; int priority; int faultTick; int seq; }
+```
+
+rewind 시 큐 잔량을 100% 복원하기 위함. TechnicianManager 측에 `clearQueue()` / `restoreQueue(entries, nextSeq)` 노출. Factory.snapshot()이 `mgr.getQueue()` → `RepairOrderSnap` 변환, `factory.restore()`가 역변환 후 `mgr.restoreQueue()` 호출 (Phase 6).
 
 ### `ScenarioLoader`
 
@@ -74,18 +85,24 @@ load(ScenarioType) → ScenarioConfig
 
 `ScenarioConfig` 구조:
 ```
-struct MachineDef     { MachineType type; string id; int processingTime; double breakdownProb; int requiredCount; string outputConveyorId; }
+struct MachineDef     { MachineType type; string id; int processingTime; double breakdownProb; int requiredCount; int maxHealth = 10; string outputConveyorId; }
 struct ConveyorDef    { string id; int length; string downstreamId; OverflowMode overflowMode; }
-struct TechnicianDef  { string id; int repairTime; }
+struct TechnicianDef  { string id; string name; int repairTime; }
 struct ScenarioConfig {
   ScenarioType type;
+  string name;
   vector<MachineDef> machines;
   vector<ConveyorDef> conveyors;
   vector<TechnicianDef> technicians;
 }
 ```
 
+- `maxHealth`: JSON 미지정 시 default 10. 시나리오마다 머신 내구도 차별화 여지 확보 (현재 5종 시나리오는 모두 10).
+- `TechnicianDef.name`: UI 표시용. JSON 미지정 시 id로 fallback. 시나리오는 `jincheol` / `jaeyong` 사용.
+
 Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.applyConfig.
+
+**에러 처리**: 잘못된 enum 문자열 / 필수 키 누락 / 파일 없음 / JSON 파싱 실패는 모두 `std::runtime_error`. 메시지에 파일 경로 + 원인 wrap (디버깅 효율).
 
 ### 시나리오 JSON 풀 정의
 
@@ -103,19 +120,19 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 {
   "name": "Bottleneck",
   "machines": [
-    { "type": "WoodSpawner",       "id": "SPN_WOOD_HEAD",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "outputConveyorId": "CONV_WOOD_HEAD" },
-    { "type": "WoodSpawner",       "id": "SPN_WOOD_NECK",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "outputConveyorId": "CONV_WOOD_NECK" },
-    { "type": "WoodSpawner",       "id": "SPN_WOOD_BODY",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "outputConveyorId": "CONV_WOOD_BODY" },
-    { "type": "BridgeSpawner",     "id": "SPN_BRIDGE",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "outputConveyorId": "CONV_BRIDGE" },
-    { "type": "PickupSpawner",     "id": "SPN_PICKUP",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "outputConveyorId": "CONV_PICKUP" },
-    { "type": "HeadCutter",        "id": "MCH_HEAD_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "outputConveyorId": "CONV_HEAD" },
-    { "type": "NeckCutter",        "id": "MCH_NECK_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "outputConveyorId": "CONV_NECK" },
-    { "type": "BodyCutter",        "id": "MCH_BODY_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "outputConveyorId": "CONV_BODY_RAW" },
-    { "type": "Painter",           "id": "MCH_PAINT",      "processingTime": 12, "breakdownProb": 0.02, "requiredCount": 1, "outputConveyorId": "CONV_BODY_PAINTED" },
-    { "type": "ElecPartCollector", "id": "MCH_ELEC",       "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 2, "outputConveyorId": "CONV_ELEC" },
-    { "type": "BodyAssembler",     "id": "MCH_BODY_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 3, "outputConveyorId": "CONV_ASMBODY" },
-    { "type": "PartAssembler",     "id": "MCH_PART_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "outputConveyorId": "CONV_GUITAR" },
-    { "type": "Packager",          "id": "MCH_PACK",       "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 1, "outputConveyorId": "" }
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_HEAD",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_HEAD" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_NECK",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_NECK" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_BODY",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_BODY" },
+    { "type": "BridgeSpawner",     "id": "SPN_BRIDGE",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_BRIDGE" },
+    { "type": "PickupSpawner",     "id": "SPN_PICKUP",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_PICKUP" },
+    { "type": "HeadCutter",        "id": "MCH_HEAD_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_HEAD" },
+    { "type": "NeckCutter",        "id": "MCH_NECK_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_NECK" },
+    { "type": "BodyCutter",        "id": "MCH_BODY_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_RAW" },
+    { "type": "Painter",           "id": "MCH_PAINT",      "processingTime": 12, "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_PAINTED" },
+    { "type": "ElecPartCollector", "id": "MCH_ELEC",       "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_ELEC" },
+    { "type": "BodyAssembler",     "id": "MCH_BODY_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 3, "maxHealth": 10, "outputConveyorId": "CONV_ASMBODY" },
+    { "type": "PartAssembler",     "id": "MCH_PART_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_GUITAR" },
+    { "type": "Packager",          "id": "MCH_PACK",       "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "" }
   ],
   "conveyors": [
     { "id": "CONV_WOOD_HEAD",     "length": 5, "downstreamId": "MCH_HEAD_CUT",  "overflowMode": "drop" },
@@ -132,8 +149,8 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
     { "id": "CONV_GUITAR",        "length": 5, "downstreamId": "MCH_PACK",      "overflowMode": "drop" }
   ],
   "technicians": [
-    { "id": "TECH_1", "repairTime": 3 },
-    { "id": "TECH_2", "repairTime": 3 }
+    { "id": "TECH_1", "name": "jincheol", "repairTime": 3 },
+    { "id": "TECH_2", "name": "jaeyong",  "repairTime": 3 }
   ]
 }
 ```
@@ -164,9 +181,11 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 ## 의존성
 
-- TechnicianManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), Phase 6 (Factory.findMachine)
+- TechnicianManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), `IMachineLookup` 인터페이스 (Phase 6 Factory가 구현)
 - MementoStore: Phase 0 (FactorySnap)
 - ScenarioLoader: nlohmann/json (Phase 0)
+
+> Factory와의 의존성 역전: TechnicianManager는 Factory 헤더를 include하지 않음. `src/model/machine/IMachineLookup.h`에 `findMachine(id) → Machine*` 인터페이스만 정의 → Phase 6 Factory가 구현.
 
 ## 테스트
 
