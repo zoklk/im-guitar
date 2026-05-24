@@ -6,13 +6,13 @@ Factory에서 분리된 조정자 3종 + 시나리오 정의. 셋 다 서로 독
 
 ## 적용 패턴
 
-- **Observer**: `EngineerManager`가 Fault 구독자
+- **Observer**: `TechnicianManager`가 Fault 구독자
 - **Memento**: `MementoStore` (Caretaker), `FactorySnap` (Memento), `Factory` (Originator — Phase 6)
 - **Configuration Loader**: `ScenarioLoader`가 JSON → 시나리오 설정 객체로 변환
 
 ## 구성요소
 
-### `EngineerManager` (IEventHandler 구현)
+### `TechnicianManager` (IEventHandler 구현)
 
 ```
 technicians_: vector<Technician*>             // 참조만, 소유는 Factory
@@ -50,7 +50,7 @@ update(tick):
 
 - **동률 처리**: 우선순위 동일 시 Fault 발생 틱 → 큐 진입 sequence (FIFO). 결정론적, 메멘토 호환
 
-**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 Factory에 lookup 메서드 필요 (`Factory::findMachine(id)`). EngineerManager는 Factory 참조도 보유.
+**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 Factory에 lookup 메서드 필요 (`Factory::findMachine(id)`). TechnicianManager는 Factory 참조도 보유.
 
 ### `MementoStore`
 
@@ -142,8 +142,8 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 ### 틱 내 이벤트 처리
 
-- publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → EngineerManager 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
-- 명세상 명확하므로 EngineerManager.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
+- publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → TechnicianManager 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
+- 명세상 명확하므로 TechnicianManager.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
 
 ### Event payload 타입 확정 (Phase 3 단계에서 선반영)
 
@@ -164,7 +164,7 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 ## 의존성
 
-- EngineerManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), Phase 6 (Factory.findMachine)
+- TechnicianManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), Phase 6 (Factory.findMachine)
 - MementoStore: Phase 0 (FactorySnap)
 - ScenarioLoader: nlohmann/json (Phase 0)
 

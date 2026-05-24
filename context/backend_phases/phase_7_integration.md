@@ -43,8 +43,8 @@ dispatch(MachineCmd cmd):
    EventLog         eventLog(broker)         // 생성자에서 subscribeAll
    Statistics       stats
    MementoStore     mementoStore
-   EngineerManager  engMgr(broker, factory)  // Fault subscribe
-   Factory          factory(broker, eventLog, stats, engMgr)
+   TechnicianManager  techMgr(broker, factory)  // Fault subscribe
+   Factory          factory(broker, eventLog, stats, techMgr)
    SimulationRunner runner(factory, broker, mementoStore)
    ScenarioLoader   loader
    Controller       ctrl(factory, runner, mementoStore, loader)
@@ -63,7 +63,7 @@ dispatch(MachineCmd cmd):
      - ImGui render
 ```
 
-**순환 의존성**: 컴파일 단위로는 forward declaration으로 끊김. EngineerManager → Factory는 setter 주입 (`engMgr.setFactory(&factory)`)으로 생성 순서 해결. 진짜 순환은 없음 — `Factory.engineerManager_` (참조), `EngineerManager.factory_` (포인터/참조)는 lifetime 동일 (main 스코프 보장).
+**순환 의존성**: 컴파일 단위로는 forward declaration으로 끊김. TechnicianManager → Factory는 setter 주입 (`techMgr.setFactory(&factory)`)으로 생성 순서 해결. 진짜 순환은 없음 — `Factory.technicianManager_` (참조), `TechnicianManager.factory_` (포인터/참조)는 lifetime 동일 (main 스코프 보장).
 
 판단:
 - snapshot 매 프레임 호출 부담 가능 — Runner가 매 틱 push한 최신 snap을 캐시 후 View가 그걸 읽도록 최적화 가능. 일단 단순 호출로 시작, 성능 이슈 시 캐시
@@ -74,7 +74,7 @@ dispatch(MachineCmd cmd):
 - 의존 관계 (Controller → Factory/Runner/Loader, Factory → 협력자, EventBroker ↔ 구독자)
 - 시퀀스 다이어그램 1~2개:
   - 정상 틱 진행 (Spawner → Conveyor → Machine → Conveyor → ...)
-  - Fault 발생 → EngineerManager 큐 → Technician 배정 → Resume
+  - Fault 발생 → TechnicianManager 큐 → Technician 배정 → Resume
 
 ### GitHub Pages
 

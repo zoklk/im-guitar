@@ -85,17 +85,18 @@
 
 ## Phase 4 — Technician + State 패턴
 
-브랜치: `back/feat/technician`. 상세: [phase_4_worker.md](phases/phase_4_worker.md)
+브랜치: `back/feat/technician`. 상세: [phase_4_technician.md](phases/phase_4_technician.md)
 
-- [ ] `Technician` (SimulationObject 직접 상속) — `targetMachine_`, `repairProgress_`, `ITechnicianState*`
-- [ ] `ITechnicianState` + `IdleState` / `WorkingState` 싱글톤
-- [ ] 수리 완료 시 `machine.repair()` 호출 + `Resume` publish
+- [x] `Technician` (SimulationObject 직접 상속) — `targetMachine_`, `repairProgress_`, `ITechnicianState*`
+- [x] `ITechnicianState` + `TechnicianIdleState` / `TechnicianWorkingState` 싱글톤
+- [x] 수리 완료 시 `machine.repair()` 호출 (Resume publish는 Machine.repair 내부에서)
+- [x] `EngineerManager` → `TechnicianManager` 명칭 통일 (Phase 5/6/7 문서 일괄 변경)
 
 ## Phase 5 — Orchestrator (Manager / Memento / ScenarioLoader)
 
 브랜치: `back/feat/orchestrator`. 상세: [phase_5_orchestrator.md](phases/phase_5_orchestrator.md)
 
-- [ ] `EngineerManager` — `Fault` 구독, 수리 대기 큐(packager 의존성 기준 우선순위), idle Technician 배정
+- [ ] `TechnicianManager` — `Fault` 구독, 수리 대기 큐(packager 의존성 기준 우선순위), idle Technician 배정
 - [ ] `MementoStore` — `std::deque<FactorySnap>`, 매 틱 push, `rewind(tick)` 복원
 - [ ] `ScenarioLoader` — JSON 파싱 → create cmd 목록 반환
 - [ ] `scenarios/*.json` 4개 (Normal / Breakdowns / Bottleneck / Overflow)
