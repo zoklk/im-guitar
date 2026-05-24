@@ -12,7 +12,7 @@
 #include "model/machine/IMachine.h"
 #include "model/product/Product.h"
 #include "model/product/ProductIdGen.h"
-#include "model/sim/SimulationObject.h"
+#include "model/SimulationObject.h"
 
 class EventBroker;
 class IMachineState;
