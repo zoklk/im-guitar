@@ -12,7 +12,8 @@ BodyAssembler::BodyAssembler(std::string   id,
                              OverflowMode  outputOverflowMode,
                              EventBroker&  broker,
                              std::mt19937& rng,
-                             ProductIdGen& idGen)
+                             ProductIdGen& idGen,
+                             int           maxHealth)
     : MultiInputMachine(std::move(id),
                         MachineType::BodyAssembler,
                         processingTime,
@@ -23,7 +24,8 @@ BodyAssembler::BodyAssembler(std::string   id,
                         outputOverflowMode,
                         broker,
                         rng,
-                        idGen) {}
+                        idGen,
+                        maxHealth) {}
 
 std::unique_ptr<Product> BodyAssembler::makeOutput(
     std::vector<std::unique_ptr<Product>> /*inputs*/, int newId) {
@@ -38,7 +40,8 @@ PartAssembler::PartAssembler(std::string   id,
                              OverflowMode  outputOverflowMode,
                              EventBroker&  broker,
                              std::mt19937& rng,
-                             ProductIdGen& idGen)
+                             ProductIdGen& idGen,
+                             int           maxHealth)
     : MultiInputMachine(std::move(id),
                         MachineType::PartAssembler,
                         processingTime,
@@ -48,7 +51,8 @@ PartAssembler::PartAssembler(std::string   id,
                         outputOverflowMode,
                         broker,
                         rng,
-                        idGen) {}
+                        idGen,
+                        maxHealth) {}
 
 std::unique_ptr<Product> PartAssembler::makeOutput(
     std::vector<std::unique_ptr<Product>> /*inputs*/, int newId) {

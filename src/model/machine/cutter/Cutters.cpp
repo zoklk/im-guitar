@@ -12,7 +12,8 @@ Cutter::Cutter(std::string   id,
                OverflowMode  outputOverflowMode,
                EventBroker&  broker,
                std::mt19937& rng,
-               ProductIdGen& idGen)
+               ProductIdGen& idGen,
+               int           maxHealth)
     : Machine(std::move(id),
               type,
               processingTime,
@@ -21,7 +22,8 @@ Cutter::Cutter(std::string   id,
               outputOverflowMode,
               broker,
               rng,
-              idGen) {}
+              idGen,
+              maxHealth) {}
 
 void Cutter::process(int tick) {
     // currentProduct에 1개 들어있는 것이 ProcessingState.onEnter의 gatherInputs 결과로 보장.
@@ -43,27 +45,30 @@ void Cutter::process(int tick) {
 // ── 구체 Cutter 3종 ─────────────────────────────────────────
 
 HeadCutter::HeadCutter(std::string id, int processingTime, double bp, OverflowMode mode,
-                       EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen)
+                       EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                       int maxHealth)
     : Cutter(std::move(id), MachineType::HeadCutter,
-             processingTime, bp, mode, broker, rng, idGen) {}
+             processingTime, bp, mode, broker, rng, idGen, maxHealth) {}
 
 std::unique_ptr<Product> HeadCutter::makeOutput(std::unique_ptr<Product> /*input*/, int newId) {
     return std::make_unique<HeadPart>(newId);
 }
 
 NeckCutter::NeckCutter(std::string id, int processingTime, double bp, OverflowMode mode,
-                       EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen)
+                       EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                       int maxHealth)
     : Cutter(std::move(id), MachineType::NeckCutter,
-             processingTime, bp, mode, broker, rng, idGen) {}
+             processingTime, bp, mode, broker, rng, idGen, maxHealth) {}
 
 std::unique_ptr<Product> NeckCutter::makeOutput(std::unique_ptr<Product> /*input*/, int newId) {
     return std::make_unique<NeckPart>(newId);
 }
 
 BodyCutter::BodyCutter(std::string id, int processingTime, double bp, OverflowMode mode,
-                       EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen)
+                       EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                       int maxHealth)
     : Cutter(std::move(id), MachineType::BodyCutter,
-             processingTime, bp, mode, broker, rng, idGen) {}
+             processingTime, bp, mode, broker, rng, idGen, maxHealth) {}
 
 std::unique_ptr<Product> BodyCutter::makeOutput(std::unique_ptr<Product> /*input*/, int newId) {
     return std::make_unique<BodyPart>(newId);

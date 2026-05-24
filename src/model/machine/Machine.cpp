@@ -13,10 +13,13 @@ Machine::Machine(std::string   id,
                  OverflowMode  outputOverflowMode,
                  EventBroker&  broker,
                  std::mt19937& rng,
-                 ProductIdGen& idGen)
+                 ProductIdGen& idGen,
+                 int           maxHealth)
     : SimulationObject(broker),
       id_(std::move(id)),
       type_(type),
+      maxHealth_(maxHealth),
+      health_(maxHealth),
       processingTime_(processingTime),
       breakdownProb_(breakdownProb),
       requiredCount_(requiredCount),
@@ -52,7 +55,7 @@ void Machine::handle(const Event& ev) {
 }
 
 void Machine::repair(int tick) {
-    health_ = 10;
+    health_ = maxHealth_;
     publishEvent(EventType::Resume, tick);
     if (processingTick_ > 0) {
         transitionTo(MachineProcessingState::instance(), tick);

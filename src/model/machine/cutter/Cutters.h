@@ -27,7 +27,8 @@ public:
            OverflowMode  outputOverflowMode,
            EventBroker&  broker,
            std::mt19937& rng,
-           ProductIdGen& idGen);
+           ProductIdGen& idGen,
+           int           maxHealth = 10);
 
 protected:
     // 자식이 input 1개를 새 output Product로 변환. newId는 발급 완료된 값.
@@ -39,7 +40,8 @@ protected:
 class HeadCutter : public Cutter {
 public:
     HeadCutter(std::string id, int processingTime, double bp, OverflowMode mode,
-               EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen);
+               EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+               int maxHealth = 10);
 protected:
     std::unique_ptr<Product> makeOutput(std::unique_ptr<Product> input, int newId) override;
 };
@@ -47,7 +49,8 @@ protected:
 class NeckCutter : public Cutter {
 public:
     NeckCutter(std::string id, int processingTime, double bp, OverflowMode mode,
-               EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen);
+               EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+               int maxHealth = 10);
 protected:
     std::unique_ptr<Product> makeOutput(std::unique_ptr<Product> input, int newId) override;
 };
@@ -55,7 +58,8 @@ protected:
 class BodyCutter : public Cutter {
 public:
     BodyCutter(std::string id, int processingTime, double bp, OverflowMode mode,
-               EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen);
+               EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+               int maxHealth = 10);
 protected:
     std::unique_ptr<Product> makeOutput(std::unique_ptr<Product> input, int newId) override;
 };

@@ -27,7 +27,8 @@ public:
             OverflowMode  outputOverflowMode,
             EventBroker&  broker,
             std::mt19937& rng,
-            ProductIdGen& idGen);
+            ProductIdGen& idGen,
+            int           maxHealth = 10);
 
 protected:
     // 자식이 새 Product 생성. id는 호출 시점에 발급 완료된 값.
@@ -44,7 +45,8 @@ protected:
 class WoodSpawner : public Spawner {
 public:
     WoodSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
-                EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen);
+                EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                int maxHealth = 10);
 protected:
     std::unique_ptr<Product> makeProduct(int newId) override;
 };
@@ -52,7 +54,8 @@ protected:
 class BridgeSpawner : public Spawner {
 public:
     BridgeSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
-                  EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen);
+                  EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                  int maxHealth = 10);
 protected:
     std::unique_ptr<Product> makeProduct(int newId) override;
 };
@@ -60,7 +63,8 @@ protected:
 class PickupSpawner : public Spawner {
 public:
     PickupSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
-                  EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen);
+                  EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,
+                  int maxHealth = 10);
 protected:
     std::unique_ptr<Product> makeProduct(int newId) override;
 };

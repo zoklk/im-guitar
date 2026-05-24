@@ -78,6 +78,8 @@ restore(FactorySnap): 메멘토 복원
 
 한 틱 내 흐름 일관성을 위해 명시 고정. concrete 타입 if/else 없음.
 
+> **순서 결정 근거**: machines를 먼저 update하면 같은 틱에 conveyor 출구가 downstream 머신의 inputBuffer로 들어가는 흐름이 한 틱 손해 없이 이어진다 (machine A가 conveyor 출구 슬롯을 비우기 전에 conveyor가 shift하면 출구가 두 번 비는 시점 발생). machine → conveyor → technician 순으로 고정해야 product 이동이 1틱 내 인접 객체까지만 전파되어 처리량 추정이 단순해진다.
+
 **start/pause/setSpeed는 Factory에 없음** — SimulationRunner 담당.
 
 ### `SimulationRunner`

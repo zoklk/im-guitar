@@ -11,7 +11,8 @@ Painter::Painter(std::string   id,
                  OverflowMode  outputOverflowMode,
                  EventBroker&  broker,
                  std::mt19937& rng,
-                 ProductIdGen& idGen)
+                 ProductIdGen& idGen,
+                 int           maxHealth)
     : Machine(std::move(id),
               MachineType::Painter,
               processingTime,
@@ -20,7 +21,8 @@ Painter::Painter(std::string   id,
               outputOverflowMode,
               broker,
               rng,
-              idGen) {}
+              idGen,
+              maxHealth) {}
 
 void Painter::process(int tick) {
     if (currentProduct_.empty()) return;
