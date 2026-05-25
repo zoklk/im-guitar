@@ -36,6 +36,9 @@ public:
     void               update(int tick) override;
     const std::string& getId() const override { return id_; }
 
+    // 기본: inputBuffer가 비어있을 때만 받음 (1머신 1product 모델).
+    // MultiInputMachine이 type별 buffer로 override.
+    bool canAcceptProduct(ProductType type) const override;
     void acceptProduct(std::unique_ptr<Product> p) override;
 
     // Fault cascade 토픽 구독자 (Factory.applyConfig가 (Fault/Resume, downstream.id) 구독 등록)

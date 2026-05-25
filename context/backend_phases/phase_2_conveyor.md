@@ -37,12 +37,13 @@ Phase 3 Machine이 `outputConveyor_: IConveyor*`로 보유. 테스트에서 Mock
 ### `IMachine` (인터페이스, forward-decl 대용)
 
 ```
+virtual bool canAcceptProduct(ProductType) const = 0   // Conveyor가 폴링용
 virtual void acceptProduct(std::unique_ptr<Product>) = 0
 virtual const std::string& getId() const = 0
 virtual ~IMachine() = default
 ```
 
-Conveyor가 `downstream_: IMachine*`로 보유. Phase 2에선 Machine 구현체가 없으므로 테스트에서 MockMachine으로만 사용. Phase 3에서 실제 Machine 추상이 IMachine을 상속.
+Conveyor가 `downstream_: IMachine*`로 보유. Conveyor.update가 출구 슬롯 push 전에 `canAcceptProduct`로 사전 폴링 — 거부되면 슬롯에 product 유지하고 다음 틱 재시도 (1머신 1product 모델). Phase 2에선 Machine 구현체가 없으므로 테스트에서 MockMachine으로만 사용. Phase 3에서 실제 Machine 추상이 IMachine을 상속.
 
 ### `Conveyor` (SimulationObject + IConveyor)
 
@@ -71,8 +72,10 @@ canAccept() const → bool               // slots_[0] 비어있는지. 상류 Ma
 push(unique_ptr<Product>, int tick)    // slots_[0]에 적재. 가득 차 있으면 std::abort
                                         // (Drop/Backpressure 처리는 상류 Machine.tryPushOrDrop 책임)
 update(tick):
-  1. 출구 방출: slots_[length-1] != null && downstream_ != null
-     → downstream_->acceptProduct(move(slots_[length-1]))
+  1. 출구 방출 (폴링 기반): slots_[length-1] != null && downstream_ != null
+     → if (downstream_->canAcceptProduct(slots_[last]->getType())):
+            downstream_->acceptProduct(move(slots_[length-1]))
+     → else: 슬롯 유지 (자연 backpressure, 다음 틱 재시도)
   2. 응축 시프트: i = length-1 → 1 역방향 순회
      - if slots_[i] == null && slots_[i-1] != null:
          slots_[i] = move(slots_[i-1])     // 빈 칸이 출구쪽으로 못 새도록 끌어당김
@@ -88,9 +91,11 @@ restoreFromSnap(const ConveyorSnap&)   // Phase 6 메멘토 — slots_ 일괄 �
 
 ### inputBuffer / 다중 입력 정책
 
-`IMachine.acceptProduct(unique_ptr<Product>)` 가상 메서드 호출로 일원화. Phase 3에서 Machine 추상이 기본 구현(단일 `inputBuffer_`에 push)을 제공하고, Assembler/Collector는 종류별 typedBuffer에 분류 (override). Conveyor는 ProductType을 모름.
+`IMachine.canAcceptProduct(type)` + `acceptProduct(unique_ptr<Product>)` 두 가상 메서드 조합. Phase 3에서 Machine 추상이 기본 구현(단일 `inputBuffer_`, idle 시 1개만 받음)을 제공하고, Assembler/Collector는 종류별 typedBuffer에 type별 1개씩 받음 (override).
 
-머신 처리 속도가 컨베이어 도착 속도보다 느릴 때 inputBuffer 누적 (의도된 동작). 단, SmartFactory에서는 상류가 `outputConveyor.canAccept()` 폴링하여 자체 정지 → inputBuffer 무한 누적은 일반 시나리오 한정.
+**1머신 1product 모델**: 모든 머신은 inputBuffer가 비어있을 때만 새 product를 받음 (idle 상태). MultiInputMachine은 type별 buffer가 비어있을 때만 그 type 받음. Conveyor가 사전 폴링으로 차단하므로 inputBuffer가 무한 누적되지 않음.
+
+결과: 머신 처리 속도가 컨베이어 도착 속도보다 느리면 컨베이어 출구가 막혀 슬롯이 채워짐 → 상류 컨베이어로 backpressure 전파 → Drop 모드에서는 상류 conveyor 가득 차면 push 실패 시점에 머신이 Drop 이벤트 발행. SmartFactory(Backpressure 모드)에서는 상류가 `outputConveyor.canAccept()` 폴링으로 자체 정지.
 
 ### Factory 와이어링 책임 (Phase 6 예고)
 

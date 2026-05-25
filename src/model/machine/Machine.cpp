@@ -35,6 +35,11 @@ void Machine::update(int tick) {
     currentState_->update(*this, tick);
 }
 
+bool Machine::canAcceptProduct(ProductType /*type*/) const {
+    // 1머신 1product: inputBuffer 차있으면 거부. Conveyor가 폴링으로 사전 차단.
+    return inputBuffer_.empty();
+}
+
 void Machine::acceptProduct(std::unique_ptr<Product> p) {
     inputBuffer_.push_back(std::move(p));
 }
