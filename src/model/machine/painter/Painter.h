@@ -11,8 +11,7 @@ class EventBroker;
 class Product;
 class ProductIdGen;
 
-// Painter: BodyPart를 받아 isPainted=true인 새 BodyPart 발급 (input의 id 폐기).
-// Cutter와 구조 동일하나 ProductType 변환 없이 메타데이터만 갱신.
+// Painter: BodyPart → isPainted=true인 새 BodyPart (입력 id 폐기, 새 id 발급).
 class Painter : public Machine {
 public:
     Painter(std::string   id,

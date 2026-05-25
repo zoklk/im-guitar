@@ -27,7 +27,6 @@ Machine::Machine(std::string   id,
       rng_(rng),
       idGen_(idGen) {
     currentState_ = &MachineIdleState::instance();
-    // 초기 상태 진입 알림 (tick=0). onEnter 부수효과는 없음 (Idle::onEnter 미정의).
 }
 
 void Machine::update(int tick) {
@@ -39,9 +38,7 @@ void Machine::acceptProduct(std::unique_ptr<Product> p) {
 }
 
 void Machine::handle(const Event& ev) {
-    // Factory.applyConfig가 (Fault, downstream.id) / (Resume, downstream.id) 토픽으로
-    // 구독시켜 호출. sourceId 필터링은 broker의 토픽 매칭이 처리하므로 여기서는
-    // type만 분기.
+    // sourceId 필터링은 broker의 토픽 매칭이 담당 → 여기선 type만 분기.
     switch (ev.type) {
         case EventType::Fault:
             ++pendingDownstreamFaults_;
@@ -97,7 +94,6 @@ bool Machine::tryPushOrDrop(std::unique_ptr<Product> p, int tick) {
     const int pid = p->getId();
     const ProductType pt = p->getType();
     publishEvent(EventType::Drop, tick, pid, pt);
-    // p는 함수 종료 시 unique_ptr 소멸로 자동 폐기
     return false;
 }
 

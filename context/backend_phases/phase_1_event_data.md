@@ -75,16 +75,18 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 
 `IEventHandler` 구현. 생성자에서 `EventBroker&`를 받아 4종 이벤트를 구독해 카운터를 자동 갱신. 외부에서 카운터를 직접 증감하는 setter는 노출하지 않음 (강결합 차단). 노출 API는 `getter ×4` + `reset()` + `handle()`.
 
-이벤트 → 카운터 매핑:
-- `Started`   → `wip++`              (Spawner가 제품 생성 시 publish)
-- `Completed` → `finished++`, `wip--` (Packager가 출고 시 publish)
-- `Drop`      → `lost++`, `wip--`    (Conveyor가 overflow drop 시 publish)
-- `Fault`     → `breakdowns++`       (BrokenState 진입 시 publish)
-- `Resume` / `Backpressure` → 통계 무관 (구독 안 함)
+이벤트 → 카운터 매핑 (Phase 3에서 확정된 최종 정책):
+- `Spawned`  → `wip += sourceCount`                      (Spawner가 시스템 진입 시 publish, sourceCount=1)
+- `Packaged` → `wip -= sourceCount`, `finished++`         (Packager가 출고 시 publish, sourceCount=5)
+- `Drop`     → `wip -= sourceCount`, `lost += sourceCount` (Machine이 push 실패 시 publish)
+- `Fault`    → `breakdowns++`                             (BrokenState 진입 시 publish)
+- `Started` / `Completed` / `Resume` / `Backpressure` → 통계 무관 (구독 안 함, EventLog 가시성 전용)
+
+`sourceCount`는 ProductType별 정적 룩업 (Phase 3 WIP 회계 표 참조 — RawWood/Bridge/Pickup=1, ElecPartSet=2, AssembledBody=3, FinishedGuitar=5).
 
 `reset()`은 Reset cmd 경로에서 호출, 4 카운터 모두 0으로.
 
-> wip는 "현재 공정 중인 제품 수" 정의. Drop 시에도 wip--를 같이 해야 일관 — Drop 이벤트 단일 핸들러에서 묶어 처리.
+> wip는 "시스템에 남아있는 원자재 단위 수" 정의. Spawned/Packaged/Drop이 모두 sourceCount 단위로 가감되어 항상 0으로 닫힘. (Started/Completed는 라이프사이클 마커라 WIP 영향 없음 — 분리 결정은 Phase 3 참조)
 
 > 모든 카운터 변경 경로가 broker 이벤트 단일화 → Conveyor / Machine 등 발행자는 Statistics를 알 필요 없음. 카운터 의미 추가 시 `handle()` switch만 늘리면 됨.
 
@@ -92,7 +94,7 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 
 - `IEventHandler` 구현. 생성자에서 `broker.subscribeAll(this)` 호출
 - 내부 `deque<LogEntry>`, `static constexpr size_t kMaxEntries = 200`, FIFO drop
-- `handle(Event)`이 Event → `"[<type-name>] <sourceId>"` 텍스트 변환 후 push. EventType→string 헬퍼는 `EventLog.cpp` 익명 namespace 내부 (외부 비노출)
+- `handle(Event)`이 Event → `"[<type-name>] <sourceId>[ product#<id> (<productType>)]"` 텍스트 변환 후 push. productId가 있으면 뒤에 부착, productType이 있으면 괄호로 추가 (가시성 보강). EventType / ProductType → string 헬퍼는 `EventLog.cpp` 익명 namespace 내부 (외부 비노출)
 - `getLogs()` getter — `deque → vector` 복사 반환. Factory.snapshot()이 호출해 `FactorySnap.logs`에 복사
 - `size()` getter — 테스트/검증용
 - `clear()` — ClearLog cmd 처리용

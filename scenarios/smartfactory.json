@@ -1,0 +1,36 @@
+{
+  "name": "SmartFactory",
+  "machines": [
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_HEAD",  "processingTime": 1,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_HEAD" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_NECK",  "processingTime": 1,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_NECK" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_BODY",  "processingTime": 1,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_BODY" },
+    { "type": "BridgeSpawner",     "id": "SPN_BRIDGE",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_BRIDGE" },
+    { "type": "PickupSpawner",     "id": "SPN_PICKUP",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_PICKUP" },
+    { "type": "HeadCutter",        "id": "MCH_HEAD_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_HEAD" },
+    { "type": "NeckCutter",        "id": "MCH_NECK_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_NECK" },
+    { "type": "BodyCutter",        "id": "MCH_BODY_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_RAW" },
+    { "type": "Painter",           "id": "MCH_PAINT",      "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_PAINTED" },
+    { "type": "ElecPartCollector", "id": "MCH_ELEC",       "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_ELEC" },
+    { "type": "BodyAssembler",     "id": "MCH_BODY_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 3, "maxHealth": 10, "outputConveyorId": "CONV_ASMBODY" },
+    { "type": "PartAssembler",     "id": "MCH_PART_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_GUITAR" },
+    { "type": "Packager",          "id": "MCH_PACK",       "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "" }
+  ],
+  "conveyors": [
+    { "id": "CONV_WOOD_HEAD",     "length": 5, "downstreamId": "MCH_HEAD_CUT",  "overflowMode": "backpressure" },
+    { "id": "CONV_WOOD_NECK",     "length": 5, "downstreamId": "MCH_NECK_CUT",  "overflowMode": "backpressure" },
+    { "id": "CONV_WOOD_BODY",     "length": 5, "downstreamId": "MCH_BODY_CUT",  "overflowMode": "backpressure" },
+    { "id": "CONV_BRIDGE",        "length": 5, "downstreamId": "MCH_ELEC",      "overflowMode": "backpressure" },
+    { "id": "CONV_PICKUP",        "length": 5, "downstreamId": "MCH_ELEC",      "overflowMode": "backpressure" },
+    { "id": "CONV_HEAD",          "length": 5, "downstreamId": "MCH_BODY_ASM",  "overflowMode": "backpressure" },
+    { "id": "CONV_NECK",          "length": 5, "downstreamId": "MCH_BODY_ASM",  "overflowMode": "backpressure" },
+    { "id": "CONV_BODY_RAW",      "length": 5, "downstreamId": "MCH_PAINT",     "overflowMode": "backpressure" },
+    { "id": "CONV_BODY_PAINTED",  "length": 5, "downstreamId": "MCH_BODY_ASM",  "overflowMode": "backpressure" },
+    { "id": "CONV_ELEC",          "length": 5, "downstreamId": "MCH_PART_ASM",  "overflowMode": "backpressure" },
+    { "id": "CONV_ASMBODY",       "length": 5, "downstreamId": "MCH_PART_ASM",  "overflowMode": "backpressure" },
+    { "id": "CONV_GUITAR",        "length": 5, "downstreamId": "MCH_PACK",      "overflowMode": "backpressure" }
+  ],
+  "technicians": [
+    { "id": "TECH_1", "name": "jincheol", "repairTime": 3 },
+    { "id": "TECH_2", "name": "jaeyong",  "repairTime": 3 }
+  ]
+}

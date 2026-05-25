@@ -57,15 +57,21 @@ restore(FactorySnap): 메멘토 복원
 1. `createConveyor` 일괄 호출 (downstream 포인터는 나중에 설정)
 2. `createMachine` 일괄 호출 (inputConveyor / outputConveyor 참조 와이어링 포함)
 3. `createTechnician` 일괄 호출
-4. **Backpressure 토픽 구독 등록** (SmartFactory 한정): 각 Machine M에 대해 `M.outputConveyor.mode == Backpressure`면 `broker.subscribe(EventType::Backpressure, M.outputConveyor.id, M)`
-5. **Fault cascade 토픽 구독 등록** (SmartFactory 한정):
+4. **Priority map 계산 + 주입** (모든 시나리오 공통):
+   - Sink 정의: `outputConveyorId == ""` 인 머신 (현 5종은 모두 Packager 단일)
+   - Machine → outputConveyor → downstreamMachine 체인의 역방향 adjacency 구성 후, 모든 sink를 시드로 단일 BFS → `unordered_map<string,int>` (machineId → 거리). 도달 불가 머신은 99
+   - `technicianManager.setPriorityMap(map)` 호출
+   - phase 5의 priority 표는 표준 13-머신 토폴로지 결과 예시일 뿐 — source of truth는 본 단계의 계산 결과
+   > 다음 단계(Fault cascade)의 forward adjacency와 인접 리스트 자료구조를 공유 가능
+5. **Backpressure 토픽 구독 등록** (SmartFactory 한정): 각 Machine M에 대해 `M.outputConveyor.mode == Backpressure`면 `broker.subscribe(EventType::Backpressure, M.outputConveyor.id, M)`
+6. **Fault cascade 토픽 구독 등록** (SmartFactory 한정):
    - 각 Conveyor가 `downstreamMachineId`를 들고 있으므로 (Phase 0 ConveyorSnap), Machine → outputConveyor → downstreamMachine 체인으로 DAG 구성 가능
    - 각 Machine M에 대해 BFS/DFS로 하류 transitive closure `D(M)` 수집
    - `X ∈ D(M)`마다:
      - `broker.subscribe(EventType::Fault,  X.id, M)`
      - `broker.subscribe(EventType::Resume, X.id, M)`
    - 구독 등록 1회로 끝 — Reset 시 broker도 재생성/구독 초기화되므로 누수 없음
-6. Machine별 RNG 참조 / ProductIdGen 참조 / Statistics 참조 등 DI 마무리
+7. Machine별 RNG 참조 / ProductIdGen 참조 / Statistics 참조 등 DI 마무리
 
 > **Drop 시나리오는 4·5 단계 skip**. Machine 인스턴스는 동일 클래스라도 시나리오에 따라 cascade 동작 유무가 갈림 — 구독 등록 여부로만 분기, Machine 클래스 내부 분기 없음.
 

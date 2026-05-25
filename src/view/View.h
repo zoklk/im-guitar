@@ -23,8 +23,7 @@ public:
         // panels_.push_back(std::make_unique<StatisticsPanel>());
     }
 
-    // 한 프레임 분량의 위젯 상호작용을 모아 단일 MachineCmd로 반환.
-    // 한 프레임에 두 개 이상 액션이 발생하면 마지막 패널의 입력이 우선.
+    // 한 프레임에 두 액션 발생 시 마지막 패널의 입력이 우선
     MachineCmd render(const FactorySnap& snap) {
         MachineCmd cmd;
         for (auto& p : panels_) {
