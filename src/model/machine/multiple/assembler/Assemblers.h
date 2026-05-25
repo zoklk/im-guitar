@@ -12,8 +12,7 @@ class EventBroker;
 class Product;
 class ProductIdGen;
 
-// BodyAssembler: HeadPart + NeckPart + BodyPart(painted) → AssembledBody (sourceCount 3).
-// 정상 토폴로지에서는 painted BodyPart만 도착. 검증 안 함.
+// BodyAssembler: HeadPart + NeckPart + BodyPart(painted) → AssembledBody
 class BodyAssembler : public MultiInputMachine {
 public:
     BodyAssembler(std::string   id,
@@ -30,7 +29,7 @@ protected:
                                         int newId) override;
 };
 
-// PartAssembler: AssembledBody + ElecPartSet → FinishedGuitar (sourceCount 5).
+// PartAssembler: AssembledBody + ElecPartSet → FinishedGuitar
 class PartAssembler : public MultiInputMachine {
 public:
     PartAssembler(std::string   id,

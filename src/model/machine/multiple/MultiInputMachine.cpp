@@ -32,12 +32,9 @@ MultiInputMachine::MultiInputMachine(std::string              id,
 void MultiInputMachine::acceptProduct(std::unique_ptr<Product> p) {
     const ProductType t = p->getType();
     typedBuffer_[t].push_back(std::move(p));
-    // 정상 토폴로지가 보장하는 한 t는 requiredTypes_ 중 하나.
-    // 비정상 type 유입 시 typedBuffer_에 누적만 됨 (canStart에 영향 없음).
 }
 
 bool MultiInputMachine::canStart() const {
-    // Backpressure / Fault cascade 분기는 base와 동일
     if (pendingDownstreamFaults_ > 0) return false;
     if (outputConveyor_ != nullptr
         && outputOverflowMode_ == OverflowMode::Backpressure
@@ -61,11 +58,10 @@ int MultiInputMachine::getInputBufferSize() const {
 }
 
 void MultiInputMachine::gatherInputs() {
-    // canStart 통과 후 호출이라 각 큐에 ≥1 보장.
-    // requiredTypes_ 순서대로 1개씩 currentProduct_로 move → publishStarted가 첫 input(=requiredTypes_[0])을 대표로.
+    // canStart 통과 후 호출이라 각 큐에 ≥1 보장
     for (ProductType t : requiredTypes_) {
         auto& q = typedBuffer_[t];
-        if (q.empty()) continue;   // 방어 (정상 흐름 도달 불가)
+        if (q.empty()) continue;   // 방어
         currentProduct_.push_back(std::move(q.back()));
         q.pop_back();
     }
@@ -74,7 +70,6 @@ void MultiInputMachine::gatherInputs() {
 void MultiInputMachine::process(int tick) {
     if (currentProduct_.empty()) return;
 
-    // currentProduct_의 모든 unique_ptr를 inputs vector로 이전
     std::vector<std::unique_ptr<Product>> inputs;
     inputs.reserve(currentProduct_.size());
     for (auto& p : currentProduct_) inputs.push_back(std::move(p));

@@ -26,9 +26,7 @@ Cutter::Cutter(std::string   id,
               maxHealth) {}
 
 void Cutter::process(int tick) {
-    // currentProduct에 1개 들어있는 것이 ProcessingState.onEnter의 gatherInputs 결과로 보장.
-    // 비정상 호출 방어: 비어있으면 skip (단, 이 경로는 정상 흐름에서 도달 불가).
-    if (currentProduct_.empty()) return;
+    if (currentProduct_.empty()) return;   // 정상 흐름 도달 불가, 방어
 
     auto       input  = std::move(currentProduct_.back());
     currentProduct_.pop_back();
@@ -39,10 +37,7 @@ void Cutter::process(int tick) {
     if (tryPushOrDrop(std::move(output), tick)) {
         publishEvent(EventType::Completed, tick, newId, ptype);
     }
-    // push 실패 시: tryPushOrDrop이 이미 Drop publish, Completed는 발행하지 않음
 }
-
-// ── 구체 Cutter 3종 ─────────────────────────────────────────
 
 HeadCutter::HeadCutter(std::string id, int processingTime, double bp, OverflowMode mode,
                        EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,

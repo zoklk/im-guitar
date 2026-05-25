@@ -27,7 +27,7 @@ Painter::Painter(std::string   id,
 void Painter::process(int tick) {
     if (currentProduct_.empty()) return;
 
-    // input은 BodyPart여야 하나, 정상 토폴로지에서만 보장. 검사 없이 진행.
+    // input이 BodyPart인 것은 토폴로지가 보장 — 검사 생략
     currentProduct_.pop_back();
     const int newId = idGen_.next();
 

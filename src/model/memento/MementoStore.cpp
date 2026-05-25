@@ -17,7 +17,6 @@ FactorySnap MementoStore::rewind(int targetTick) {
         throw std::out_of_range("MementoStore::rewind targetTick out of range");
     }
     const size_t index = static_cast<size_t>(targetTick - firstTick_);
-    // index 이후 폐기 (index는 유지)
     while (history_.size() > index + 1) {
         history_.pop_back();
     }

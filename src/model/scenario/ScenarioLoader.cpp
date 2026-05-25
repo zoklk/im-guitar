@@ -72,8 +72,6 @@ ScenarioConfig ScenarioLoader::load(ScenarioType type) {
     cfg.type = type;
     cfg.name = j.value("name", std::string{});
 
-    // 머신/컨베이어/테크니션 파싱은 try-catch로 감싸 어느 인덱스에서 실패했는지 명시.
-    // nlohmann::json::out_of_range는 키 누락, type_error는 타입 불일치.
     try {
         size_t idx = 0;
         for (const auto& jm : j.at("machines")) {
@@ -83,7 +81,7 @@ ScenarioConfig ScenarioLoader::load(ScenarioType type) {
             m.processingTime   = jm.at("processingTime").get<int>();
             m.breakdownProb    = jm.at("breakdownProb").get<double>();
             m.requiredCount    = jm.at("requiredCount").get<int>();
-            m.maxHealth        = jm.value("maxHealth", 10);                     // 미지정 시 default 10
+            m.maxHealth        = jm.value("maxHealth", 10);
             m.outputConveyorId = jm.value("outputConveyorId", std::string{});
             cfg.machines.push_back(std::move(m));
             ++idx;
@@ -103,7 +101,7 @@ ScenarioConfig ScenarioLoader::load(ScenarioType type) {
             TechnicianDef t;
             t.id         = jt.at("id").get<std::string>();
             t.repairTime = jt.at("repairTime").get<int>();
-            t.name       = jt.value("name", t.id);                             // 미지정 시 id 사용
+            t.name       = jt.value("name", t.id);
             cfg.technicians.push_back(std::move(t));
             ++idx;
         }
