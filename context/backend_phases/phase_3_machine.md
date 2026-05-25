@@ -81,6 +81,12 @@ forceBreak()                                     // health = 0 설정 (다음 up
 
 // helper (Drop 모드 push 분기 한 곳에 모음)
 bool tryPushOrDrop(unique_ptr<Product> out, int tick)
+
+// Phase 6 메멘토 — 자기 자신을 *Snap으로/으로부터 복원 (friend 없이 캡슐화 유지)
+virtual void serializeInputs(vector<ProductSnap>& out) const   // 기본: inputBuffer_. MultiInputMachine override (typedBuffer 합치기)
+virtual void clearInputs()                                     // 기본: inputBuffer_.clear. MultiInputMachine override (typedBuffer_.clear)
+void         serializeCurrentProduct(vector<ProductSnap>& out) const
+void         restoreFromSnap(const MachineSnap&)               // 필드 일괄 + currentState_ derive
 ```
 
 `tryPushOrDrop`:
@@ -176,6 +182,7 @@ BodyAssembler / PartAssembler / ElecPartCollector는 종류별 입력 필요. �
 - `canStart` override: 모든 필요 type에 1개 이상 있는지 검사 + base의 Backpressure 분기 유지
 - `gatherInputs` override: typedBuffer에서 requiredTypes 순서대로 1개씩 currentProduct로 move
 - `process` override: currentProduct 모두를 inputs vector로 이전 → 자식 `makeOutput(inputs, newId)` 호출 → tryPushOrDrop → 성공 시 Completed publish
+- `serializeInputs` / `clearInputs` override (Phase 6 메멘토): typedBuffer 전체를 평탄화/clear. 복원 시 base의 `restoreFromSnap`이 `clearInputs() + acceptProduct(...) 다형 호출`로 다시 typedBuffer로 분류됨
 - 자식 (`ElecPartCollector` / `BodyAssembler` / `PartAssembler`)은 생성자에서 requiredTypes 지정 + `makeOutput`만 override
 - BodyAssembler는 정상 토폴로지에서 Painter 거친 painted BodyPart만 도착 (검증 없음)
 
@@ -261,3 +268,5 @@ phase별 분리:
 - Backpressure 이벤트의 실제 publisher 결정 (phase 6 — 후보: Machine이 suspended 전이 시점에 1회 publish)
 - Fault cascade 토픽 구독 등록 (phase 6 Factory.applyConfig)
 - RNG / ProductIdGen 보유 주체 확정 (phase 6 Factory)
+- 메멘토 직렬화 메서드(`restoreFromSnap` / `serializeInputs` 등)는 Phase 6 도입 — Phase 3에서는 시그니처만 알아두면 됨
+- **ProcessingState.update의 `health<=0` 체크가 `breakdownProb > 0.0` 가드 안에 있음** — bp=0인 머신이 Processing 중 forceBreak 받으면 다음 cycle 종료까지 Broken 전이 안 됨. IdleState는 가드 밖 체크라 즉시 전이. 동작상 큰 문제 없으나 후속 보정 여지

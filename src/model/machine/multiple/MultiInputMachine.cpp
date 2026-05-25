@@ -2,10 +2,12 @@
 
 #include <utility>
 
+#include "common/FactorySnap.h"
 #include "model/conveyor/IConveyor.h"
 #include "model/event/EventBroker.h"
 #include "model/product/Product.h"
 #include "model/product/ProductIdGen.h"
+#include "model/product/ProductSnap.h"
 
 MultiInputMachine::MultiInputMachine(std::string              id,
                                      MachineType              type,
@@ -65,6 +67,18 @@ void MultiInputMachine::gatherInputs() {
         currentProduct_.push_back(std::move(q.back()));
         q.pop_back();
     }
+}
+
+void MultiInputMachine::serializeInputs(std::vector<ProductSnap>& out) const {
+    for (const auto& [_, q] : typedBuffer_) {
+        for (const auto& p : q) {
+            if (p) out.push_back(productToSnap(*p));
+        }
+    }
+}
+
+void MultiInputMachine::clearInputs() {
+    typedBuffer_.clear();
 }
 
 void MultiInputMachine::process(int tick) {

@@ -7,6 +7,7 @@
 
 #include "IConveyor.h"
 #include "SimulationObject.h"
+#include "common/FactorySnap.h"
 
 class EventBroker;
 class IMachine;
@@ -28,6 +29,10 @@ public:
 
     int            length() const { return static_cast<int>(slots_.size()); }
     const Product* slotAt(int i) const { return slots_[i].get(); }
+    const IMachine* getDownstream() const { return downstream_; }
+
+    // 메멘토 — Factory.restore에서 호출. ProductSnap 옵션을 새 unique_ptr<Product>로 복원.
+    void restoreFromSnap(const ConveyorSnap& snap);
 
 private:
     std::string                           id_;

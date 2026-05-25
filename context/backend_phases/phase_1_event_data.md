@@ -29,6 +29,9 @@ subscribeAll(IEventHandler*)                       // 와일드카드 (EventLog 
 publish(Event)                                     // 큐에 적재, 즉시 호출 X
 flush()                                            // 큐 비우며 매칭 구독자 handle() 호출
 clearQueue()                                       // 미디스패치 잔량 폐기 (Reset cmd용)
+clearTopicSubscriptions()                          // 토픽 구독만 일괄 제거 (Factory.reset에서 머신 dangling 방지)
+restoreQueue(vector<Event>)                        // 메멘토 복원 — 큐를 snap의 pendingEvents로 일괄 교체
+snapshotQueue() const → vector<Event>             // 메멘토 직렬화 — 큐 잔량 복사 반환
 queueSize() const                                  // 큐 잔량 (테스트/검증용)
 ```
 
@@ -73,7 +76,7 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 
 ### `Statistics`
 
-`IEventHandler` 구현. 생성자에서 `EventBroker&`를 받아 4종 이벤트를 구독해 카운터를 자동 갱신. 외부에서 카운터를 직접 증감하는 setter는 노출하지 않음 (강결합 차단). 노출 API는 `getter ×4` + `reset()` + `handle()`.
+`IEventHandler` 구현. 생성자에서 `EventBroker&`를 받아 4종 이벤트를 구독해 카운터를 자동 갱신. 일반 코드 경로에서 카운터를 직접 증감하는 setter는 노출하지 않음 (강결합 차단). 노출 API는 `getter ×4` + `reset()` + `handle()` + `setSnapshot(finished, wip, breakdowns, lost)` (메멘토 복원 전용 일괄 set).
 
 이벤트 → 카운터 매핑 (Phase 3에서 확정된 최종 정책):
 - `Spawned`  → `wip += sourceCount`                      (Spawner가 시스템 진입 시 publish, sourceCount=1)
@@ -96,6 +99,7 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 - 내부 `deque<LogEntry>`, `static constexpr size_t kMaxEntries = 200`, FIFO drop
 - `handle(Event)`이 Event → `"[<type-name>] <sourceId>[ product#<id> (<productType>)]"` 텍스트 변환 후 push. productId가 있으면 뒤에 부착, productType이 있으면 괄호로 추가 (가시성 보강). EventType / ProductType → string 헬퍼는 `EventLog.cpp` 익명 namespace 내부 (외부 비노출)
 - `getLogs()` getter — `deque → vector` 복사 반환. Factory.snapshot()이 호출해 `FactorySnap.logs`에 복사
+- `setLogs(const vector<LogEntry>&)` — 메멘토 복원용 일괄 set (200 cap 유지)
 - `size()` getter — 테스트/검증용
 - `clear()` — ClearLog cmd 처리용
 
@@ -107,10 +111,10 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 src/model/
 ├── event/    EventBroker.{h,cpp}  EventLog.{h,cpp}
 ├── product/  Product.h (추상 + 9종 derived 1파일)  ProductIdGen.h
-└── stats/    Statistics.h
+└── stats/    Statistics.{h,cpp}
 ```
 
-Product derived 9종은 데이터 거의 없어 한 헤더에 모음. Statistics / ProductIdGen은 inline 가능해서 헤더 only.
+Product derived 9종은 데이터 거의 없어 한 헤더에 모음. ProductIdGen은 inline 가능해서 헤더 only. Statistics는 sourceCount 룩업 + 멤버 변경이 .cpp에 들어가 헤더+cpp 분리.
 
 ## 빌드 인프라
 
@@ -136,4 +140,4 @@ CMake에 `model_lib` static library 추가 (`src/model/*.cpp` GLOB_RECURSE). PUB
 
 ## 후속
 
-- Event payload 타입 확정 → Phase 5에서 페이로드 목록 확정 후 결정
+- 메멘토 setter들(`setSnapshot` / `setLogs` / `restoreQueue` / `clearTopicSubscriptions`)은 Phase 6 Factory.restore 도입과 함께 추가됨 — Phase 1 시점엔 미구현이고, 인프라 자체는 Phase 1에서 완성

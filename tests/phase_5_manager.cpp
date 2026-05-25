@@ -16,7 +16,7 @@
 #include "model/machine/MachineStates.h"
 #include "model/product/ProductIdGen.h"
 #include "model/technician/Technician.h"
-#include "model/orchestrator/technician_manager/TechnicianManager.h"
+#include "model/technician_manager/TechnicianManager.h"
 
 #include <gtest/gtest.h>
 
@@ -53,8 +53,7 @@ ProductIdGen& sharedIdGen() {
 }
 
 // 머신을 BrokenState로 진입시키며 Fault 이벤트를 자동 발행 → broker.flush로
-// TechnicianManager.handle까지 한 번에 도달. forceBreak() 만으로는 health_=0만
-// 설정되고 currentState_ 전이는 일어나지 않으므로 update를 한 번 호출.
+// TechnicianManager.handle까지 한 번에 도달.
 void breakAndDispatchFault(Machine& m, EventBroker& broker, int tick) {
     m.forceBreak();
     m.update(tick);   // IdleState::update가 health<=0 감지 → BrokenState 전이 → Fault publish
@@ -75,12 +74,13 @@ TEST(PhaseTechManager, FaultEnqueuesEntry) {
     StubLookup lookup;
     lookup.add(&m);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M_PACK", 0}});
 
     breakAndDispatchFault(m, broker, /*tick=*/10);
 
     ASSERT_EQ(mgr.getQueue().size(), 1u);
     EXPECT_EQ(mgr.getQueue()[0].machine, &m);
-    EXPECT_EQ(mgr.getQueue()[0].priority, 0);   // Packager
+    EXPECT_EQ(mgr.getQueue()[0].priority, 0);
     EXPECT_EQ(mgr.getQueue()[0].faultTick, 10);
     EXPECT_EQ(mgr.getQueue()[0].seq, 0);
 }
@@ -100,6 +100,19 @@ TEST(PhaseTechManager, UnknownSourceIdIgnored) {
     EXPECT_TRUE(mgr.getQueue().empty());
 }
 
+TEST(PhaseTechManager, UnknownPriorityFallsBackTo99) {
+    EventBroker broker;
+    auto rng = makeRng();
+    SpyMachine m("M_X", MachineType::HeadCutter, broker, rng, sharedIdGen());
+    StubLookup lookup;
+    lookup.add(&m);
+    TechnicianManager mgr(broker, lookup);
+    // setPriorityMap 호출 없음 → priorityOf("M_X")는 99 fallback
+    breakAndDispatchFault(m, broker, 1);
+    ASSERT_EQ(mgr.getQueue().size(), 1u);
+    EXPECT_EQ(mgr.getQueue()[0].priority, 99);
+}
+
 // ─────────────────────────────────────────────────────────────
 // 2. 우선순위 정렬: Packager + HeadCutter → Packager 먼저
 // ─────────────────────────────────────────────────────────────
@@ -114,6 +127,7 @@ TEST(PhaseTechManager, PriorityOrderingPackagerBeforeHeadCutter) {
     lookup.add(&pack);
     lookup.add(&head);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M_PACK", 0}, {"M_HEAD", 3}});
 
     // HeadCutter 먼저 발행해도 Packager가 더 높은 우선순위(priority=0)
     breakAndDispatchFault(head, broker, 10);
@@ -123,13 +137,11 @@ TEST(PhaseTechManager, PriorityOrderingPackagerBeforeHeadCutter) {
     mgr.registerTechnician(&t);
 
     mgr.update(11);
-    // Packager가 먼저 assign되어야 함
     EXPECT_EQ(t.getTargetMachine(), &pack);
 }
 
 // ─────────────────────────────────────────────────────────────
-// 3. FIFO 동률: HeadCutter / NeckCutter (priority 동일 3) 동시 fault
-//    → seq 작은 쪽 먼저
+// 3. FIFO 동률: 동일 priority 두 머신 → seq 작은 쪽 먼저
 // ─────────────────────────────────────────────────────────────
 
 TEST(PhaseTechManager, FifoTieBreakBySeq) {
@@ -142,8 +154,8 @@ TEST(PhaseTechManager, FifoTieBreakBySeq) {
     lookup.add(&head);
     lookup.add(&neck);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M_HEAD", 3}, {"M_NECK", 3}});
 
-    // 같은 tick에 head → neck 순으로 발행
     breakAndDispatchFault(head, broker, 10);
     breakAndDispatchFault(neck, broker, 10);
 
@@ -151,7 +163,7 @@ TEST(PhaseTechManager, FifoTieBreakBySeq) {
     mgr.registerTechnician(&t);
 
     mgr.update(11);
-    EXPECT_EQ(t.getTargetMachine(), &head);   // 먼저 큐 진입한 head
+    EXPECT_EQ(t.getTargetMachine(), &head);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -168,6 +180,7 @@ TEST(PhaseTechManager, AssignsToIdleTechnicianAndPopsQueue) {
     lookup.add(&m1);
     lookup.add(&m2);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M1", 3}, {"M2", 3}});
 
     breakAndDispatchFault(m1, broker, 10);
     breakAndDispatchFault(m2, broker, 10);
@@ -194,6 +207,7 @@ TEST(PhaseTechManager, BusyTechnicianNotReassigned) {
     lookup.add(&m1);
     lookup.add(&m2);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M1", 3}, {"M2", 3}});
 
     Technician t1("T1", /*repairTime=*/5, broker);
     mgr.registerTechnician(&t1);
@@ -202,13 +216,12 @@ TEST(PhaseTechManager, BusyTechnicianNotReassigned) {
     mgr.update(2);
     ASSERT_FALSE(t1.isIdle());
 
-    // 두 번째 Fault 발생 — 큐에 들어가나 t1은 busy라 배정 못 함
     breakAndDispatchFault(m2, broker, 3);
     mgr.update(4);
 
     ASSERT_EQ(mgr.getQueue().size(), 1u);
     EXPECT_EQ(mgr.getQueue()[0].machine, &m2);
-    EXPECT_EQ(t1.getTargetMachine(), &m1);   // 여전히 m1 수리 중
+    EXPECT_EQ(t1.getTargetMachine(), &m1);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -225,45 +238,26 @@ TEST(PhaseTechManager, StaleQueueHeadIsPoppedAutomatically) {
     lookup.add(&m1);
     lookup.add(&m2);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M1", 3}, {"M2", 3}});
 
     breakAndDispatchFault(m1, broker, 1);
     breakAndDispatchFault(m2, broker, 2);
     ASSERT_EQ(mgr.getQueue().size(), 2u);
 
-    // 외부에서 instantRepair 우회 → m1.repair()로 broken 해제
     m1.repair(3);
-    broker.flush();   // repair가 발행한 Resume 이벤트 처리 (Manager에는 영향 없음)
+    broker.flush();
     ASSERT_NE(m1.getCurrentState(), &MachineBrokenState::instance());
 
     Technician t1("T1", 2, broker);
     mgr.registerTechnician(&t1);
 
     mgr.update(4);
-    // m1은 stale로 pop, m2가 t1에 배정
     EXPECT_EQ(t1.getTargetMachine(), &m2);
     EXPECT_TRUE(mgr.getQueue().empty());
 }
 
 // ─────────────────────────────────────────────────────────────
-// 6. priorityOf 정적 테이블 검증
-// ─────────────────────────────────────────────────────────────
-
-TEST(PhaseTechManager, PriorityTableMatchesSpec) {
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::Packager)),          0);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::PartAssembler)),     1);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::BodyAssembler)),     2);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::ElecPartCollector)), 2);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::HeadCutter)),        3);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::NeckCutter)),        3);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::Painter)),           3);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::BridgeSpawner)),     3);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::PickupSpawner)),     3);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::BodyCutter)),        4);
-    EXPECT_EQ(TechnicianManager::priorityOf(static_cast<int>(MachineType::WoodSpawner)),       4);
-}
-
-// ─────────────────────────────────────────────────────────────
-// 7. clearQueue / restoreQueue (메멘토 복원 시뮬레이션)
+// 6. clearQueue / restoreQueue (메멘토 복원 시뮬레이션)
 // ─────────────────────────────────────────────────────────────
 
 TEST(PhaseTechManager, ClearAndRestoreQueue) {
@@ -274,6 +268,7 @@ TEST(PhaseTechManager, ClearAndRestoreQueue) {
     StubLookup lookup;
     lookup.add(&m);
     TechnicianManager mgr(broker, lookup);
+    mgr.setPriorityMap({{"M1", 3}});
 
     breakAndDispatchFault(m, broker, 1);
     ASSERT_EQ(mgr.getQueue().size(), 1u);

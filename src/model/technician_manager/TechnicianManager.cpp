@@ -1,7 +1,7 @@
 #include "TechnicianManager.h"
 
 #include <algorithm>
-#include <unordered_map>
+#include <utility>
 
 #include "Technician.h"
 #include "model/event/EventBroker.h"
@@ -10,23 +10,6 @@
 #include "model/machine/MachineStates.h"
 
 namespace {
-
-const std::unordered_map<MachineType, int>& priorityTable() {
-    static const std::unordered_map<MachineType, int> kTable = {
-        {MachineType::Packager,           0},
-        {MachineType::PartAssembler,      1},
-        {MachineType::BodyAssembler,      2},
-        {MachineType::ElecPartCollector,  2},
-        {MachineType::HeadCutter,         3},
-        {MachineType::NeckCutter,         3},
-        {MachineType::Painter,            3},
-        {MachineType::BridgeSpawner,      3},
-        {MachineType::PickupSpawner,      3},
-        {MachineType::BodyCutter,         4},
-        {MachineType::WoodSpawner,        4},
-    };
-    return kTable;
-}
 
 bool machineIsBroken(const Machine* m) {
     return m != nullptr && m->getCurrentState() == &MachineBrokenState::instance();
@@ -37,7 +20,7 @@ bool machineIsBroken(const Machine* m) {
 TechnicianManager::TechnicianManager(EventBroker&    broker,
                                      IMachineLookup& lookup)
     : broker_(broker),
-      lookup_(lookup) {
+      lookup_(&lookup) {
     broker_.subscribe(EventType::Fault, this);
 }
 
@@ -45,19 +28,25 @@ void TechnicianManager::registerTechnician(Technician* t) {
     if (t != nullptr) technicians_.push_back(t);
 }
 
+void TechnicianManager::setPriorityMap(std::unordered_map<std::string, int> map) {
+    priorityMap_ = std::move(map);
+}
+
+int TechnicianManager::priorityOf(const std::string& machineId) const {
+    auto it = priorityMap_.find(machineId);
+    return (it != priorityMap_.end()) ? it->second : 99;
+}
+
 void TechnicianManager::handle(const Event& ev) {
     if (ev.type != EventType::Fault) return;
+    if (lookup_ == nullptr) return;
 
-    Machine* m = lookup_.findMachine(ev.sourceId);
+    Machine* m = lookup_->findMachine(ev.sourceId);
     if (m == nullptr) return;
-
-    const auto& table = priorityTable();
-    auto it = table.find(m->getType());
-    const int prio = (it != table.end()) ? it->second : 99;
 
     QueueEntry entry;
     entry.machine   = m;
-    entry.priority  = prio;
+    entry.priority  = priorityOf(m->getId());
     entry.faultTick = ev.tick;
     entry.seq       = nextSeq_++;
     repairQueue_.push_back(entry);
@@ -94,10 +83,4 @@ void TechnicianManager::clearQueue() {
 void TechnicianManager::restoreQueue(const std::vector<QueueEntry>& entries, int nextSeq) {
     repairQueue_ = entries;
     nextSeq_     = nextSeq;
-}
-
-int TechnicianManager::priorityOf(int machineTypeEnumValue) {
-    const auto& table = priorityTable();
-    auto it = table.find(static_cast<MachineType>(machineTypeEnumValue));
-    return (it != table.end()) ? it->second : 99;
 }

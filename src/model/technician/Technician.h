@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "common/FactorySnap.h"
 #include "model/SimulationObject.h"
 
 class EventBroker;
@@ -30,6 +31,9 @@ public:
     int                  getRepairTime() const      { return repairTime_; }
     int                  getRepairProgress() const  { return repairProgress_; }
     const ITechnicianState* getCurrentState() const { return currentState_; }
+
+    // 메멘토 — Factory.restore가 snap의 targetMachineId를 미리 lookup해 target 포인터를 넘김.
+    void restoreFromSnap(const TechnicianSnap& snap, Machine* target);
 
 private:
     friend class TechnicianIdleState;

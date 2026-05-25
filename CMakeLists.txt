@@ -100,9 +100,10 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/assembler"
         "${CMAKE_SOURCE_DIR}/src/model/machine/packager"
         "${CMAKE_SOURCE_DIR}/src/model/technician"
-        "${CMAKE_SOURCE_DIR}/src/model/orchestrator/memento"
-        "${CMAKE_SOURCE_DIR}/src/model/orchestrator/scenario"
-        "${CMAKE_SOURCE_DIR}/src/model/orchestrator/technician_manager"
+        "${CMAKE_SOURCE_DIR}/src/model/memento"
+        "${CMAKE_SOURCE_DIR}/src/model/scenario"
+        "${CMAKE_SOURCE_DIR}/src/model/technician_manager"
+        "${CMAKE_SOURCE_DIR}/src/model/factory"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
 endif()
@@ -159,11 +160,16 @@ if(IMGUITAR_BUILD_TESTS)
     file(GLOB TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/tests/*.cpp"
     )
+    # phase_7_controller.cpp 가 Controller.cpp 를 필요로 함 (model_lib 외부)
+    file(GLOB CONTROLLER_TEST_DEPS CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/src/controller/*.cpp"
+    )
     if(TEST_SOURCES)
-        add_executable(unit_tests ${TEST_SOURCES})
+        add_executable(unit_tests ${TEST_SOURCES} ${CONTROLLER_TEST_DEPS})
         target_include_directories(unit_tests PRIVATE
             "${CMAKE_SOURCE_DIR}/src"
             "${CMAKE_SOURCE_DIR}/src/common"
+            "${CMAKE_SOURCE_DIR}/src/controller"
         )
         target_link_libraries(unit_tests PRIVATE
             GTest::gtest_main
@@ -172,7 +178,11 @@ if(IMGUITAR_BUILD_TESTS)
         if(TARGET model_lib)
             target_link_libraries(unit_tests PRIVATE model_lib)
         endif()
-        include(GoogleTest)
-        gtest_discover_tests(unit_tests)
+        # gtest_discover_tests를 사용하면 build 단계에서 exe를 실행해 테스트를 등록하는데,
+        # Windows MinGW 환경에서는 build 작업 디렉토리가 DLL 경로와 어긋나 5초 timeout 안에
+        # 첫 startup조차 마치지 못하는 경우가 있다 (0xc0000139 entry-point 오류).
+        # add_test로 통째로 한 번 실행하는 방식으로 우회 — 개별 케이스는 gtest --list-tests
+        # 또는 unit_tests.exe 직접 실행으로 확인.
+        add_test(NAME unit_tests COMMAND unit_tests)
     endif()
 endif()

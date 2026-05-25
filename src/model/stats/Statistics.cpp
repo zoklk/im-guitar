@@ -47,3 +47,10 @@ void Statistics::reset() {
     breakdowns_ = 0;
     lost_       = 0;
 }
+
+void Statistics::setSnapshot(int finished, int wip, int breakdowns, int lost) {
+    finished_   = finished;
+    wip_        = wip;
+    breakdowns_ = breakdowns;
+    lost_       = lost;
+}

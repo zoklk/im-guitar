@@ -6,8 +6,8 @@
 #include <string>
 
 #include "common/Types.h"
-#include "model/orchestrator/scenario/ScenarioConfig.h"
-#include "model/orchestrator/scenario/ScenarioLoader.h"
+#include "model/scenario/ScenarioConfig.h"
+#include "model/scenario/ScenarioLoader.h"
 
 #include <gtest/gtest.h>
 
@@ -72,17 +72,22 @@ TEST(PhaseLoader, LoadsBottleneckScenarioWithPainterPt12) {
     EXPECT_TRUE(found);
 }
 
-TEST(PhaseLoader, LoadsOverflowScenarioWithWoodSpawnerPt1Drop) {
+TEST(PhaseLoader, LoadsOverflowScenarioWithFastSpawners) {
     auto cfg = loadOne(ScenarioType::Overflow);
     EXPECT_EQ(cfg.name, "Overflow");
-    int woodSpawnerCount = 0;
+    // Spawner 5종은 pt=2로 빠르게 공급(드롭 유발), 나머지 8종은 pt=6
     for (const auto& m : cfg.machines) {
-        if (m.type == MachineType::WoodSpawner) {
-            EXPECT_EQ(m.processingTime, 1);
-            ++woodSpawnerCount;
+        switch (m.type) {
+            case MachineType::WoodSpawner:
+            case MachineType::BridgeSpawner:
+            case MachineType::PickupSpawner:
+                EXPECT_EQ(m.processingTime, 2) << "spawner id=" << m.id;
+                break;
+            default:
+                EXPECT_EQ(m.processingTime, 6) << "non-spawner id=" << m.id;
+                break;
         }
     }
-    EXPECT_EQ(woodSpawnerCount, 3);
     // 전부 drop 모드
     for (const auto& c : cfg.conveyors) {
         EXPECT_EQ(c.overflowMode, OverflowMode::Drop);
