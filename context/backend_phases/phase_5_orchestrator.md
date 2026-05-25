@@ -17,11 +17,14 @@ Factory에서 분리된 조정자 3종 + 시나리오 정의. 셋 다 서로 독
 ```
 technicians_: vector<Technician*>             // 참조만, 소유는 Factory
 repairQueue_: vector<QueueEntry>              // 정렬 + FIFO 동률 처리
+priorityMap_: const unordered_map<string,int>*   // Phase 6 Factory가 주입 (machineId → priority)
 
 struct QueueEntry { Machine* machine; int priority; int faultTick; int seq; }
 
+setPriorityMap(map): priorityMap_ = &map        // Factory.applyConfig에서 1회 호출
+
 handle(Event):
-  - type == Fault: queue.push({machine_from_sourceId, prio_table[machine.type], event.tick, next_seq++})
+  - type == Fault: queue.push({machine_from_sourceId, (*priorityMap_)[machine.id], event.tick, next_seq++})
 update(tick):
   - 큐 정렬: priority 오름차순 → faultTick 오름차순 → seq 오름차순 (FIFO)
   - 각 idle Technician에 대해 큐 앞에서 pop → tech.assign(machine)
@@ -31,8 +34,13 @@ update(tick):
 구독 등록: 생성 시 `broker.subscribe(EventType::Fault, this)`.
 
 **우선순위 정책**:
-- Packager 의존성 그래프 역방향 거리. 같은 MachineType의 여러 인스턴스가 다른 거리를 가지면 **최단 거리**로 단일화 (정적 테이블 단순화 위함). priority 값이 낮을수록 먼저 수리
-- 정적 매핑 테이블 (`unordered_map<MachineType, int>`):
+- Sink(Packager) 의존성 그래프 역방향 거리. priority 값이 낮을수록 먼저 수리
+- **계산 위치**: Phase 6 Factory.applyConfig가 토폴로지에서 역방향 BFS로 `unordered_map<string,int>` (machineId → priority)를 산출하여 `technicianManager.setPriorityMap(map)`로 주입. TechnicianManager는 정적 타입 테이블을 보유하지 않음
+- **Sink 정의**: `outputConveyorId == ""` 인 머신 (현 5종 시나리오는 모두 Packager 단일 sink). 다중 sink면 최단 거리 채택, 도달 불가 머신은 폴백 99
+- **인스턴스 단위 priority**: 같은 MachineType이라도 그래프 위치별로 다른 priority를 가질 수 있음 (예: 백업 Packager 추가 시 자연 분리). 과거 "MachineType별 최단 거리 단일화" 단순화는 폐기
+- **동률 처리**: 우선순위 동일 시 Fault 발생 틱 → 큐 진입 sequence (FIFO). 결정론적, 메멘토 호환
+
+표준 13-머신 토폴로지에서의 산출 결과 (참고 예시, source of truth 아님):
 
   | MachineType | priority |
   |---|---|
@@ -47,8 +55,6 @@ update(tick):
   | PickupSpawner | 3 |
   | BodyCutter | 4 |
   | WoodSpawner | 4 |
-
-- **동률 처리**: 우선순위 동일 시 Fault 발생 틱 → 큐 진입 sequence (FIFO). 결정론적, 메멘토 호환
 
 **Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 Factory에 lookup 메서드 필요 (`Factory::findMachine(id)`). TechnicianManager는 Factory 참조도 보유.
 
