@@ -160,11 +160,16 @@ if(IMGUITAR_BUILD_TESTS)
     file(GLOB TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/tests/*.cpp"
     )
+    # phase_7_controller.cpp 가 Controller.cpp 를 필요로 함 (model_lib 외부)
+    file(GLOB CONTROLLER_TEST_DEPS CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/src/controller/*.cpp"
+    )
     if(TEST_SOURCES)
-        add_executable(unit_tests ${TEST_SOURCES})
+        add_executable(unit_tests ${TEST_SOURCES} ${CONTROLLER_TEST_DEPS})
         target_include_directories(unit_tests PRIVATE
             "${CMAKE_SOURCE_DIR}/src"
             "${CMAKE_SOURCE_DIR}/src/common"
+            "${CMAKE_SOURCE_DIR}/src/controller"
         )
         target_link_libraries(unit_tests PRIVATE
             GTest::gtest_main
