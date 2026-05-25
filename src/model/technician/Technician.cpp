@@ -34,3 +34,11 @@ void Technician::transitionTo(ITechnicianState& next, int tick) {
 bool Technician::isIdle() const {
     return currentState_ == &TechnicianIdleState::instance();
 }
+
+void Technician::restoreFromSnap(const TechnicianSnap& snap, Machine* target) {
+    repairProgress_ = snap.repairProgress;
+    targetMachine_  = target;
+    currentState_   = (target != nullptr)
+        ? static_cast<ITechnicianState*>(&TechnicianWorkingState::instance())
+        : static_cast<ITechnicianState*>(&TechnicianIdleState::instance());
+}

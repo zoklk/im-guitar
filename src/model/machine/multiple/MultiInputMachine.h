@@ -33,6 +33,10 @@ public:
     // Snapshot용 — typedBuffer 전체 크기 합산
     int  getInputBufferSize() const override;
 
+    // 메멘토 — 모든 typedBuffer를 합쳐 직렬화 / clear
+    void serializeInputs(std::vector<ProductSnap>& out) const override;
+    void clearInputs() override;
+
 protected:
     // inputs 순서는 requiredTypes_ 순서
     virtual std::unique_ptr<Product> makeOutput(std::vector<std::unique_ptr<Product>> inputs,

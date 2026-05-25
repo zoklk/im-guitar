@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "common/Event.h"
+#include "common/FactorySnap.h"
 #include "common/Types.h"
 #include "model/conveyor/IConveyor.h"
 #include "model/machine/IMachine.h"
@@ -49,6 +50,12 @@ public:
     virtual void process(int tick) = 0;
 
     void transitionTo(IMachineState& next, int tick);
+
+    // ── 메멘토 직렬화/복원 (Factory snapshot/restore 용) ────────────
+    virtual void serializeInputs(std::vector<ProductSnap>& out) const;
+    virtual void clearInputs();
+    void         serializeCurrentProduct(std::vector<ProductSnap>& out) const;
+    void         restoreFromSnap(const MachineSnap& snap);   // currentState_ derive 포함
 
     MachineType  getType() const                { return type_; }
     int          getHealth() const              { return health_; }

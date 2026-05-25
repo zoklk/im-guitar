@@ -14,6 +14,7 @@ public:
     int getLost() const       { return lost_; }
 
     void reset();
+    void setSnapshot(int finished, int wip, int breakdowns, int lost);   // 메멘토 복원
 
     void handle(const Event& ev) override;
 

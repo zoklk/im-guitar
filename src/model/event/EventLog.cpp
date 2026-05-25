@@ -74,6 +74,12 @@ std::vector<LogEntry> EventLog::getLogs() const {
     return std::vector<LogEntry>(entries_.begin(), entries_.end());
 }
 
+void EventLog::setLogs(const std::vector<LogEntry>& logs) {
+    entries_.clear();
+    for (const auto& e : logs) entries_.push_back(e);
+    while (entries_.size() > kMaxEntries) entries_.pop_front();
+}
+
 void EventLog::pushEntry(LogEntry entry) {
     if (entries_.size() >= kMaxEntries) {
         entries_.pop_front();

@@ -17,6 +17,7 @@ public:
     void clear();
 
     std::vector<LogEntry> getLogs() const;
+    void                  setLogs(const std::vector<LogEntry>& logs);   // 메멘토 복원
     size_t                size() const { return entries_.size(); }
 
 private:

@@ -7,6 +7,7 @@
 #include "EventBroker.h"
 #include "IMachine.h"
 #include "Product.h"
+#include "model/product/ProductSnap.h"
 
 Conveyor::Conveyor(std::string id, int length, EventBroker& broker)
     : SimulationObject(broker),
@@ -38,6 +39,16 @@ void Conveyor::update(int /*tick*/) {
     for (int i = last; i >= 1; --i) {
         if (slots_[i] == nullptr && slots_[i - 1] != nullptr) {
             slots_[i] = std::move(slots_[i - 1]);
+        }
+    }
+}
+
+void Conveyor::restoreFromSnap(const ConveyorSnap& snap) {
+    slots_.clear();
+    slots_.resize(snap.slots.size());
+    for (size_t i = 0; i < snap.slots.size(); ++i) {
+        if (snap.slots[i].has_value()) {
+            slots_[i] = productFromSnap(*snap.slots[i]);
         }
     }
 }
