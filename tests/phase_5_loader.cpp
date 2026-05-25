@@ -6,8 +6,8 @@
 #include <string>
 
 #include "common/Types.h"
-#include "model/scenario/ScenarioConfig.h"
-#include "model/scenario/ScenarioLoader.h"
+#include "model/orchestrator/scenario/ScenarioConfig.h"
+#include "model/orchestrator/scenario/ScenarioLoader.h"
 
 #include <gtest/gtest.h>
 

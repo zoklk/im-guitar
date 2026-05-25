@@ -100,8 +100,9 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/machine/multiple/assembler"
         "${CMAKE_SOURCE_DIR}/src/model/machine/packager"
         "${CMAKE_SOURCE_DIR}/src/model/technician"
-        "${CMAKE_SOURCE_DIR}/src/model/memento"
-        "${CMAKE_SOURCE_DIR}/src/model/scenario"
+        "${CMAKE_SOURCE_DIR}/src/model/orchestrator/memento"
+        "${CMAKE_SOURCE_DIR}/src/model/orchestrator/scenario"
+        "${CMAKE_SOURCE_DIR}/src/model/orchestrator/technician_manager"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
 endif()

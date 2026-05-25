@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "common/FactorySnap.h"
-#include "model/memento/MementoStore.h"
+#include "model/orchestrator/memento/MementoStore.h"
 
 #include <gtest/gtest.h>
 
