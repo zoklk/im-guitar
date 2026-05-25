@@ -15,16 +15,19 @@ Factory에서 분리된 조정자 3종 + 시나리오 정의. 셋 다 서로 독
 ### `TechnicianManager` (IEventHandler 구현)
 
 ```
-technicians_: vector<Technician*>             // 참조만, 소유는 Factory
-repairQueue_: vector<QueueEntry>              // 정렬 + FIFO 동률 처리
-priorityMap_: const unordered_map<string,int>*   // Phase 6 Factory가 주입 (machineId → priority)
+technicians_:  vector<Technician*>             // 참조만, 소유는 Factory
+repairQueue_:  vector<QueueEntry>              // 정렬 + FIFO 동률 처리
+priorityMap_:  unordered_map<string,int>       // Factory.applyConfig가 setPriorityMap으로 by-value 주입
+lookup_:       IMachineLookup*                 // nullable. 생성자 인자 또는 setLookup setter로 주입
 
 struct QueueEntry { Machine* machine; int priority; int faultTick; int seq; }
 
-setPriorityMap(map): priorityMap_ = &map        // Factory.applyConfig에서 1회 호출
+setPriorityMap(map):  priorityMap_ = std::move(map)   // Factory.applyConfig에서 1회 호출 (by-value 보유)
+setLookup(lookup):    lookup_      = &lookup          // 순환 의존성 해결용 setter (Phase 7 통합 참조)
+priorityOf(machineId) const → int                     // priorityMap_의 entry 반환, 없으면 99 fallback
 
 handle(Event):
-  - type == Fault: queue.push({machine_from_sourceId, (*priorityMap_)[machine.id], event.tick, next_seq++})
+  - type == Fault && lookup_ 유효: queue.push({lookup_->findMachine(sourceId), priorityOf(machine.id), event.tick, next_seq++})
 update(tick):
   - 큐 정렬: priority 오름차순 → faultTick 오름차순 → seq 오름차순 (FIFO)
   - 각 idle Technician에 대해 큐 앞에서 pop → tech.assign(machine)
@@ -56,7 +59,7 @@ update(tick):
   | BodyCutter | 4 |
   | WoodSpawner | 4 |
 
-**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 Factory에 lookup 메서드 필요 (`Factory::findMachine(id)`). TechnicianManager는 Factory 참조도 보유.
+**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 `IMachineLookup` 인터페이스 (`findMachine(id) → Machine*`)가 필요. Phase 6 Factory가 이를 구현. TechnicianManager는 `lookup_: IMachineLookup*`를 보유 (nullable) — Phase 7 main 와이어링에서 Factory 생성 전 임시 `NullLookup` placeholder로 생성자 통과 후, Factory 생성 직후 `setLookup(factory)` 호출로 진짜 lookup 주입. 순환 의존 (TechnicianManager ↔ Factory) 해결 패턴.
 
 ### `MementoStore`
 
@@ -114,31 +117,33 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 `scenarios/*.json` 5개 (Normal / Breakdowns / Bottleneck / Overflow / SmartFactory). 모두 동일 13개 머신 + 12개 컨베이어 + 2명 Technician 구조. 차이는 파라미터만:
 
-| 시나리오 | breakdownProb | Painter pt | WoodSpawner pt | overflowMode |
-|---|---|---|---|---|
-| Normal | 0 | 6 | 2 | drop |
-| Breakdowns | 0.02 | 6 | 2 | drop |
-| Bottleneck | 0.02 | 12 | 2 | drop |
-| Overflow | 0.02 | 6 | 1 | drop |
-| SmartFactory | 0.02 | 6 | 1 | backpressure |
+| 시나리오 | breakdownProb | 머신 pt 정책 | overflowMode |
+|---|---|---|---|
+| Normal | 0 | 13대 전부 6 | drop |
+| Breakdowns | 0.02 | 13대 전부 6 | drop |
+| Bottleneck | 0.02 | 13대 전부 6, Painter만 12 | drop |
+| Overflow | 0.02 | Spawner 5종만 2, 나머지 8종 6 | drop |
+| SmartFactory | 0.02 | (변경 없음, 기존 값 유지) | backpressure |
+
+> **pt 통일 결정 이유**: spawner의 pt를 낮추면 처음에는 빠르게 채워지지만 곧 conveyor가 포화 → Normal에서도 drop이 발생함. Normal은 drop 없이 흐름 검증 시나리오이므로 pt를 통일. Overflow는 의도적 drop이 목적이라 spawner만 예외적으로 pt 작게.
 
 ```json
 {
   "name": "Bottleneck",
   "machines": [
-    { "type": "WoodSpawner",       "id": "SPN_WOOD_HEAD",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_HEAD" },
-    { "type": "WoodSpawner",       "id": "SPN_WOOD_NECK",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_NECK" },
-    { "type": "WoodSpawner",       "id": "SPN_WOOD_BODY",  "processingTime": 2,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_BODY" },
-    { "type": "BridgeSpawner",     "id": "SPN_BRIDGE",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_BRIDGE" },
-    { "type": "PickupSpawner",     "id": "SPN_PICKUP",     "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_PICKUP" },
-    { "type": "HeadCutter",        "id": "MCH_HEAD_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_HEAD" },
-    { "type": "NeckCutter",        "id": "MCH_NECK_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_NECK" },
-    { "type": "BodyCutter",        "id": "MCH_BODY_CUT",   "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_RAW" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_HEAD",  "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_HEAD" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_NECK",  "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_NECK" },
+    { "type": "WoodSpawner",       "id": "SPN_WOOD_BODY",  "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_WOOD_BODY" },
+    { "type": "BridgeSpawner",     "id": "SPN_BRIDGE",     "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_BRIDGE" },
+    { "type": "PickupSpawner",     "id": "SPN_PICKUP",     "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 0, "maxHealth": 10, "outputConveyorId": "CONV_PICKUP" },
+    { "type": "HeadCutter",        "id": "MCH_HEAD_CUT",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_HEAD" },
+    { "type": "NeckCutter",        "id": "MCH_NECK_CUT",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_NECK" },
+    { "type": "BodyCutter",        "id": "MCH_BODY_CUT",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_RAW" },
     { "type": "Painter",           "id": "MCH_PAINT",      "processingTime": 12, "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_PAINTED" },
-    { "type": "ElecPartCollector", "id": "MCH_ELEC",       "processingTime": 4,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_ELEC" },
+    { "type": "ElecPartCollector", "id": "MCH_ELEC",       "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_ELEC" },
     { "type": "BodyAssembler",     "id": "MCH_BODY_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 3, "maxHealth": 10, "outputConveyorId": "CONV_ASMBODY" },
     { "type": "PartAssembler",     "id": "MCH_PART_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_GUITAR" },
-    { "type": "Packager",          "id": "MCH_PACK",       "processingTime": 3,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "" }
+    { "type": "Packager",          "id": "MCH_PACK",       "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "" }
   ],
   "conveyors": [
     { "id": "CONV_WOOD_HEAD",     "length": 5, "downstreamId": "MCH_HEAD_CUT",  "overflowMode": "drop" },

@@ -65,16 +65,19 @@ Conveyor(id, length, broker)
 
 동작:
 ```
-setDownstream(IMachine* m)            // Factory.applyConfig / 테스트 fixture가 호출
-canAccept() const → bool              // slots_[0] 비어있는지. 상류 Machine의 폴링용
-push(unique_ptr<Product>, int tick)   // slots_[0]에 적재. 가득 차 있으면 std::abort
-                                       // (Drop/Backpressure 처리는 상류 Machine.tryPushOrDrop 책임)
+setDownstream(IMachine* m)             // Factory.applyConfig / 테스트 fixture가 호출
+getDownstream() const → const IMachine* // 메멘토 직렬화에서 downstreamId 채우기용
+canAccept() const → bool               // slots_[0] 비어있는지. 상류 Machine의 폴링용
+push(unique_ptr<Product>, int tick)    // slots_[0]에 적재. 가득 차 있으면 std::abort
+                                        // (Drop/Backpressure 처리는 상류 Machine.tryPushOrDrop 책임)
 update(tick):
   1. 출구 방출: slots_[length-1] != null && downstream_ != null
      → downstream_->acceptProduct(move(slots_[length-1]))
   2. 응축 시프트: i = length-1 → 1 역방향 순회
      - if slots_[i] == null && slots_[i-1] != null:
          slots_[i] = move(slots_[i-1])     // 빈 칸이 출구쪽으로 못 새도록 끌어당김
+
+restoreFromSnap(const ConveyorSnap&)   // Phase 6 메멘토 — slots_ 일괄 교체 (ProductSnap → unique_ptr<Product>)
 ```
 
 판단:

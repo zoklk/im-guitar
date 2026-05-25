@@ -48,6 +48,10 @@ assign(Machine*, int tick):
   transitionTo(TechnicianWorkingState::instance(), tick)
 transitionTo(ITechnicianState&, int tick): onExit → swap → onEnter
 isIdle(): currentState_ == &TechnicianIdleState::instance()
+
+// Phase 6 메멘토 — Factory가 snap의 targetMachineId를 미리 lookup해 target 포인터를 넘겨줌
+//                  Technician은 IMachineLookup 의존 회피 + state derive (target null → Idle / not null → Working)
+restoreFromSnap(const TechnicianSnap& snap, Machine* target)
 ```
 
 TechnicianManager가 `assign()` 호출 → TechnicianWorkingState 진입 → repairTime틱 후 자동 복귀.
