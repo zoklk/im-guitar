@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "common/Event.h"
@@ -22,7 +23,12 @@ public:
     TechnicianManager(EventBroker&    broker,
                       IMachineLookup& lookup);
 
+    void setLookup(IMachineLookup& lookup) { lookup_ = &lookup; }
     void registerTechnician(Technician* t);
+    void clearTechnicians() { technicians_.clear(); }
+
+    // Factory.applyConfig가 BFS로 계산해 1회 주입. 키가 없으면 priorityOf()는 99 fallback.
+    void setPriorityMap(std::unordered_map<std::string, int> map);
 
     void handle(const Event& ev) override;
 
@@ -36,12 +42,13 @@ public:
     int                            getNextSeq() const { return nextSeq_; }
     const std::vector<Technician*>& getTechnicians() const { return technicians_; }
 
-    static int priorityOf(int machineTypeEnumValue);
+    int priorityOf(const std::string& machineId) const;
 
 private:
-    EventBroker&             broker_;
-    IMachineLookup&          lookup_;
-    std::vector<Technician*> technicians_;
-    std::vector<QueueEntry>  repairQueue_;
-    int                      nextSeq_ = 0;
+    EventBroker&                          broker_;
+    IMachineLookup*                       lookup_;
+    std::vector<Technician*>              technicians_;
+    std::vector<QueueEntry>               repairQueue_;
+    std::unordered_map<std::string, int>  priorityMap_;
+    int                                   nextSeq_ = 0;
 };
