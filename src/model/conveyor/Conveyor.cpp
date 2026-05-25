@@ -32,8 +32,12 @@ void Conveyor::push(std::unique_ptr<Product> p, int tick) {
 void Conveyor::update(int /*tick*/) {
     const int last = static_cast<int>(slots_.size()) - 1;
 
+    // 출구 슬롯이 차있으면 downstream에 폴링. 받을 수 있을 때만 push,
+    // 거부되면 슬롯에 product 그대로 유지 → 다음 틱 재시도 (자연 backpressure).
     if (slots_[last] != nullptr && downstream_ != nullptr) {
-        downstream_->acceptProduct(std::move(slots_[last]));
+        if (downstream_->canAcceptProduct(slots_[last]->getType())) {
+            downstream_->acceptProduct(std::move(slots_[last]));
+        }
     }
 
     for (int i = last; i >= 1; --i) {

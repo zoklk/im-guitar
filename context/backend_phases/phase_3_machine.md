@@ -71,6 +71,7 @@ pendingDownstreamFaults_: int                 // SmartFactory에서만 사용 �
 update(tick): currentState_->update(*this, tick)
 transitionTo(IMachineState&): cur.onExit → 갱신 → new.onEnter
 
+virtual bool canAcceptProduct(ProductType) const // 기본: inputBuffer_.empty()일 때만 true (1머신 1product). Conveyor가 사전 폴링.
 virtual void acceptProduct(unique_ptr<Product>)  // 기본: inputBuffer_.push_back. MultiInputMachine이 typedBuffer 분류로 override
 virtual bool canStart() const                    // 기본: inputBuffer.size() >= requiredCount && pendingDownstreamFaults_ == 0 && (Drop모드 || outputConveyor->canAccept()). MultiInputMachine이 typedBuffer 검사로 override
 virtual void process(int tick) = 0               // currentProduct → output 생성 → tryPushOrDrop()으로 출력
@@ -178,6 +179,7 @@ Packager는 일반 Machine이지만 `process()`가 input을 소비하고 output�
 BodyAssembler / PartAssembler / ElecPartCollector는 종류별 입력 필요. 셋이 동일한 typedBuffer 패턴을 쓰므로 `MultiInputMachine` 공통 추상 base로 추출 (machine/multiple/).
 
 - `MultiInputMachine`은 `unordered_map<ProductType, vector<unique_ptr<Product>>>` typedBuffer 보유
+- `canAcceptProduct(type)` override: `typedBuffer_[type].empty()`일 때만 true. type별 1슬롯 모델 — 한 type에 이미 하나 있어도 다른 type은 받음 (각 컨베이어 라인 독립)
 - `acceptProduct` override: product type 보고 해당 typedBuffer push
 - `canStart` override: 모든 필요 type에 1개 이상 있는지 검사 + base의 Backpressure 분기 유지
 - `gatherInputs` override: typedBuffer에서 requiredTypes 순서대로 1개씩 currentProduct로 move

@@ -30,7 +30,7 @@
     { "id": "CONV_GUITAR",        "length": 5, "downstreamId": "MCH_PACK",      "overflowMode": "backpressure" }
   ],
   "technicians": [
-    { "id": "TECH_1", "name": "jincheol", "repairTime": 3 },
-    { "id": "TECH_2", "name": "jaeyong",  "repairTime": 3 }
+    { "id": "TECH_1", "name": "jincheol", "repairTime": 15 },
+    { "id": "TECH_2", "name": "jaeyong",  "repairTime": 15 }
   ]
 }

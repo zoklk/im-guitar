@@ -31,6 +31,11 @@ MultiInputMachine::MultiInputMachine(std::string              id,
               maxHealth),
       requiredTypes_(std::move(requiredTypes)) {}
 
+bool MultiInputMachine::canAcceptProduct(ProductType type) const {
+    auto it = typedBuffer_.find(type);
+    return it == typedBuffer_.end() || it->second.empty();
+}
+
 void MultiInputMachine::acceptProduct(std::unique_ptr<Product> p) {
     const ProductType t = p->getType();
     typedBuffer_[t].push_back(std::move(p));

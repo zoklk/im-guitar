@@ -27,6 +27,8 @@ public:
                       ProductIdGen&            idGen,
                       int                      maxHealth = 10);
 
+    // type별 1개 buffer. 해당 type에 이미 하나 있으면 거부 (다른 type은 영향 X).
+    bool canAcceptProduct(ProductType type) const override;
     void acceptProduct(std::unique_ptr<Product> p) override;
     bool canStart() const override;
 
