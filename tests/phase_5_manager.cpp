@@ -16,7 +16,7 @@
 #include "model/machine/MachineStates.h"
 #include "model/product/ProductIdGen.h"
 #include "model/technician/Technician.h"
-#include "model/orchestrator/technician_manager/TechnicianManager.h"
+#include "model/technician_manager/TechnicianManager.h"
 
 #include <gtest/gtest.h>
 
