@@ -54,7 +54,7 @@ class IEventHandler { virtual void handle(const Event&) = 0; };
 - `ConveyorSnap`: 큐 모델 → **슬롯 배열** (`vector<optional<ProductSnap>>`), `downstreamId` 명시. (overflowMode는 Machine.outputOverflowMode에 들어가므로 ConveyorSnap에는 두지 않음)
 - `SpawnerSnap` 삭제 — Spawner는 Machine이므로 `MachineSnap`에 흡수
 - `TechnicianSnap`: `targetMachineId: optional<string>`, `repairProgress`, `repairTime`
-- `FactorySnap`: `pendingEvents: vector<Event>` 추가 (메멘토 정확도), `logs: vector<LogEntry>` 유지, `rngState: string` 추가, `productIdCounter: int` 추가 (ProductIdGen 상태 — rewind 후 ID 단조성 보존용), `pendingRepairs: vector<RepairOrderSnap>` 추가 (TechnicianManager 큐 직렬화 — Phase 5 결정), `speedMultiplier` / `running` 추가 (Runner 상태 전시용, restore는 무시)
+- `FactorySnap`: `pendingEvents: vector<Event>` 추가 (메멘토 정확도), `logs: vector<LogEntry>` 유지, `rngState: string` 추가, `productIdCounter: int` 추가 (ProductIdGen 상태 — rewind 후 ID 단조성 보존용), `pendingRepairs: vector<RepairOrderSnap>` 추가 (RepairDispatcher 큐 직렬화 — Phase 5 결정), `speedMultiplier` / `running` 추가 (Runner 상태 전시용, restore는 무시)
 
 > 참고: snap은 raw 값만 들고, 소유권은 unique_ptr이라도 snap엔 복사된 `ProductSnap` 값으로만 들어감.
 

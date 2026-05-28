@@ -11,7 +11,7 @@ class IMachineLookup;
 class Machine;
 class Technician;
 
-class TechnicianManager : public IEventHandler {
+class RepairDispatcher : public IEventHandler {
 public:
     struct QueueEntry {
         Machine* machine   = nullptr;
@@ -20,8 +20,8 @@ public:
         int      seq       = 0;
     };
 
-    TechnicianManager(EventBroker&    broker,
-                      IMachineLookup& lookup);
+    RepairDispatcher(EventBroker&    broker,
+                     IMachineLookup& lookup);
 
     void setLookup(IMachineLookup& lookup) { lookup_ = &lookup; }
     void registerTechnician(Technician* t);

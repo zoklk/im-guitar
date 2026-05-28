@@ -6,13 +6,13 @@ Factory에서 분리된 조정자 3종 + 시나리오 정의. 셋 다 서로 독
 
 ## 적용 패턴
 
-- **Observer**: `TechnicianManager`가 Fault 구독자
+- **Observer**: `RepairDispatcher`가 Fault 구독자
 - **Memento**: `MementoStore` (Caretaker), `FactorySnap` (Memento), `Factory` (Originator — Phase 6)
 - **Configuration Loader**: `ScenarioLoader`가 JSON → 시나리오 설정 객체로 변환
 
 ## 구성요소
 
-### `TechnicianManager` (IEventHandler 구현)
+### `RepairDispatcher` (IEventHandler 구현)
 
 ```
 technicians_:  vector<Technician*>             // 참조만, 소유는 Factory
@@ -38,7 +38,7 @@ update(tick):
 
 **우선순위 정책**:
 - Sink(Packager) 의존성 그래프 역방향 거리. priority 값이 낮을수록 먼저 수리
-- **계산 위치**: Phase 6 Factory.applyConfig가 토폴로지에서 역방향 BFS로 `unordered_map<string,int>` (machineId → priority)를 산출하여 `technicianManager.setPriorityMap(map)`로 주입. TechnicianManager는 정적 타입 테이블을 보유하지 않음
+- **계산 위치**: Phase 6 Factory.applyConfig가 토폴로지에서 역방향 BFS로 `unordered_map<string,int>` (machineId → priority)를 산출하여 `repairDispatcher.setPriorityMap(map)`로 주입. RepairDispatcher는 정적 타입 테이블을 보유하지 않음
 - **Sink 정의**: `outputConveyorId == ""` 인 머신 (현 5종 시나리오는 모두 Packager 단일 sink). 다중 sink면 최단 거리 채택, 도달 불가 머신은 폴백 99
 - **인스턴스 단위 priority**: 같은 MachineType이라도 그래프 위치별로 다른 priority를 가질 수 있음 (예: 백업 Packager 추가 시 자연 분리). 과거 "MachineType별 최단 거리 단일화" 단순화는 폐기
 - **동률 처리**: 우선순위 동일 시 Fault 발생 틱 → 큐 진입 sequence (FIFO). 결정론적, 메멘토 호환
@@ -59,7 +59,7 @@ update(tick):
   | BodyCutter | 4 |
   | WoodSpawner | 4 |
 
-**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 `IMachineLookup` 인터페이스 (`findMachine(id) → Machine*`)가 필요. Phase 6 Factory가 이를 구현. TechnicianManager는 `lookup_: IMachineLookup*`를 보유 (nullable) — Phase 7 main 와이어링에서 Factory 생성 전 임시 `NullLookup` placeholder로 생성자 통과 후, Factory 생성 직후 `setLookup(factory)` 호출로 진짜 lookup 주입. 순환 의존 (TechnicianManager ↔ Factory) 해결 패턴.
+**Machine 조회**: sourceId(string)에서 Machine*로 매핑하려면 `IMachineLookup` 인터페이스 (`findMachine(id) → Machine*`)가 필요. Phase 6 Factory가 이를 구현. RepairDispatcher는 `lookup_: IMachineLookup*`를 보유 (nullable) — Phase 7 main 와이어링에서 Factory 생성 전 임시 `NullLookup` placeholder로 생성자 통과 후, Factory 생성 직후 `setLookup(factory)` 호출로 진짜 lookup 주입. 순환 의존 (RepairDispatcher ↔ Factory) 해결 패턴.
 
 ### `MementoStore`
 
@@ -76,7 +76,7 @@ clear()
 - Rewind cmd: Controller가 호출 → 반환 snap을 `factory.restore(snap)`로 적용
 - 사이즈 캡 없음 (무제한 누적). 메모리 정책은 Phase 6/7에서 sliding window 검토.
 
-### 메멘토 정확도: TechnicianManager 큐 직렬화
+### 메멘토 정확도: RepairDispatcher 큐 직렬화
 
 `FactorySnap.pendingRepairs: vector<RepairOrderSnap>` 추가 (Phase 0 FactorySnap 확장). 한 entry 구조:
 
@@ -84,7 +84,7 @@ clear()
 struct RepairOrderSnap { string machineId; int priority; int faultTick; int seq; }
 ```
 
-rewind 시 큐 잔량을 100% 복원하기 위함. TechnicianManager 측에 `clearQueue()` / `restoreQueue(entries, nextSeq)` 노출. Factory.snapshot()이 `mgr.getQueue()` → `RepairOrderSnap` 변환, `factory.restore()`가 역변환 후 `mgr.restoreQueue()` 호출 (Phase 6).
+rewind 시 큐 잔량을 100% 복원하기 위함. RepairDispatcher 측에 `clearQueue()` / `restoreQueue(entries, nextSeq)` 노출. Factory.snapshot()이 `dispatcher.getQueue()` → `RepairOrderSnap` 변환, `factory.restore()`가 역변환 후 `dispatcher.restoreQueue()` 호출 (Phase 6).
 
 ### `ScenarioLoader`
 
@@ -170,8 +170,8 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 ### 틱 내 이벤트 처리
 
-- publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → TechnicianManager 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
-- 명세상 명확하므로 TechnicianManager.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
+- publish는 큐 적재만, flush는 틱 종료 시. 즉 같은 틱에 Fault 발행 → RepairDispatcher 처리는 **다음 틱**의 update에서 (1틱 지연 감수)
+- 명세상 명확하므로 RepairDispatcher.update는 Factory.tick() 순서의 마지막에 배치되어 broker.flush() 결과를 한 틱 늦게 받음 ([phase_6_factory.md] 참조)
 
 ### Event payload 타입 확정 (Phase 3 단계에서 선반영)
 
@@ -192,11 +192,11 @@ Controller가 `setScenario` cmd 처리 시 ScenarioLoader.load → Factory.apply
 
 ## 의존성
 
-- TechnicianManager: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), `IMachineLookup` 인터페이스 (Phase 6 Factory가 구현)
+- RepairDispatcher: Phase 3 (Machine), Phase 4 (Technician), Phase 1 (EventBroker), `IMachineLookup` 인터페이스 (Phase 6 Factory가 구현)
 - MementoStore: Phase 0 (FactorySnap)
 - ScenarioLoader: nlohmann/json (Phase 0)
 
-> Factory와의 의존성 역전: TechnicianManager는 Factory 헤더를 include하지 않음. `src/model/machine/IMachineLookup.h`에 `findMachine(id) → Machine*` 인터페이스만 정의 → Phase 6 Factory가 구현.
+> Factory와의 의존성 역전: RepairDispatcher는 Factory 헤더를 include하지 않음. `src/model/machine/IMachineLookup.h`에 `findMachine(id) → Machine*` 인터페이스만 정의 → Phase 6 Factory가 구현.
 
 ## 테스트
 

@@ -96,7 +96,7 @@
 
 브랜치: `back/feat/orchestrator`. 상세: [phase_5_orchestrator.md](phases/phase_5_orchestrator.md)
 
-- [x] `TechnicianManager` — `Fault` 구독, 수리 대기 큐(packager 의존성 기준 우선순위), idle Technician 배정
+- [x] `RepairDispatcher` — `Fault` 구독, 수리 대기 큐(packager 의존성 기준 우선순위), idle Technician 배정
 - [x] `MementoStore` — `std::deque<FactorySnap>`, 매 틱 push, `rewind(tick)` 복원
 - [x] `ScenarioLoader` — JSON 파싱 → create cmd 목록 반환
 - [x] `scenarios/*.json` 4개 (Normal / Breakdowns / Bottleneck / Overflow)
@@ -114,8 +114,12 @@
 - [x] `SimulationRunner` — `tickIntervalSec_` (0.6s/speed), accumulator, `tryAdvance(realDt)` 한 번에 `factory.tick + broker.flush + mementoStore.push`
 - [x] RNG (`std::mt19937`) + `ProductIdGen` Factory 보유, reset 시 시드 재발급 + 카운터 0
 - [x] `Controller::dispatch(MachineCmd)` — 11종 CmdAction → Factory / Runner / Loader / MementoStore 도메인 메서드 위임. 자체 상태 없음
-- [x] `TechnicianManager`에 `setLookup(IMachineLookup&)` setter 추가 → Factory와의 순환 의존 해결
+- [x] `RepairDispatcher`에 `setLookup(IMachineLookup&)` setter 추가 → Factory와의 순환 의존 해결
 - [x] 정적 priorityTable 제거 → Factory.applyConfig의 BFS 결과를 `setPriorityMap`으로 주입
+
+## Phase 7 — refactor
+
+- [x] `TechnicianManager` → `RepairDispatcher` 명칭 변경 (역할 명확화: 사람 관리가 아닌 수리 작업 디스패처 / SimObj 아님). 디렉토리 `src/model/repair_dispatcher/`, 테스트 / phase 문서 일괄 변경
 
 ---
 
