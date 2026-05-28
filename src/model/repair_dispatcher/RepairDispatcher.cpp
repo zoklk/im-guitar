@@ -1,4 +1,4 @@
-#include "TechnicianManager.h"
+#include "RepairDispatcher.h"
 
 #include <algorithm>
 #include <utility>
@@ -17,27 +17,27 @@ bool machineIsBroken(const Machine* m) {
 
 }  // namespace
 
-TechnicianManager::TechnicianManager(EventBroker&    broker,
+RepairDispatcher::RepairDispatcher(EventBroker&    broker,
                                      IMachineLookup& lookup)
     : broker_(broker),
       lookup_(&lookup) {
     broker_.subscribe(EventType::Fault, this);
 }
 
-void TechnicianManager::registerTechnician(Technician* t) {
+void RepairDispatcher::registerTechnician(Technician* t) {
     if (t != nullptr) technicians_.push_back(t);
 }
 
-void TechnicianManager::setPriorityMap(std::unordered_map<std::string, int> map) {
+void RepairDispatcher::setPriorityMap(std::unordered_map<std::string, int> map) {
     priorityMap_ = std::move(map);
 }
 
-int TechnicianManager::priorityOf(const std::string& machineId) const {
+int RepairDispatcher::priorityOf(const std::string& machineId) const {
     auto it = priorityMap_.find(machineId);
     return (it != priorityMap_.end()) ? it->second : 99;
 }
 
-void TechnicianManager::handle(const Event& ev) {
+void RepairDispatcher::handle(const Event& ev) {
     if (ev.type != EventType::Fault) return;
     if (lookup_ == nullptr) return;
 
@@ -52,7 +52,7 @@ void TechnicianManager::handle(const Event& ev) {
     repairQueue_.push_back(entry);
 }
 
-void TechnicianManager::update(int tick) {
+void RepairDispatcher::update(int tick) {
     // priority↑ → faultTick↑ → seq↑
     std::sort(repairQueue_.begin(), repairQueue_.end(),
               [](const QueueEntry& a, const QueueEntry& b) {
@@ -75,12 +75,12 @@ void TechnicianManager::update(int tick) {
     }
 }
 
-void TechnicianManager::clearQueue() {
+void RepairDispatcher::clearQueue() {
     repairQueue_.clear();
     nextSeq_ = 0;
 }
 
-void TechnicianManager::restoreQueue(const std::vector<QueueEntry>& entries, int nextSeq) {
+void RepairDispatcher::restoreQueue(const std::vector<QueueEntry>& entries, int nextSeq) {
     repairQueue_ = entries;
     nextSeq_     = nextSeq;
 }

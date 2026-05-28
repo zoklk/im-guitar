@@ -102,7 +102,7 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/technician"
         "${CMAKE_SOURCE_DIR}/src/model/memento"
         "${CMAKE_SOURCE_DIR}/src/model/scenario"
-        "${CMAKE_SOURCE_DIR}/src/model/technician_manager"
+        "${CMAKE_SOURCE_DIR}/src/model/repair_dispatcher"
         "${CMAKE_SOURCE_DIR}/src/model/factory"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
