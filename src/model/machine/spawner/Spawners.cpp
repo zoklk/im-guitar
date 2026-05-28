@@ -30,15 +30,10 @@ void Spawner::process(int tick) {
     auto       product = makeProduct(newId);
     const auto ptype   = product->getType();
 
-    // Spawned 먼저 publish (WIP 회계: wip += sourceCount). push 결과와 무관.
+    // Spawned는 push 결과와 무관하게 먼저 publish (WIP 회계용)
     publishEvent(EventType::Spawned, tick, newId, ptype);
-
-    // tryPushOrDrop: 성공 시 outputCount++, 실패(Drop 모드 한정) 시 Drop publish.
-    // Backpressure 모드는 canStart가 사전 차단하므로 여기 도달 시 push는 성공.
     tryPushOrDrop(std::move(product), tick);
 }
-
-// ── 구체 Spawner 3종 ─────────────────────────────────────────
 
 WoodSpawner::WoodSpawner(std::string id, int spawnInterval, double bp, OverflowMode mode,
                          EventBroker& broker, std::mt19937& rng, ProductIdGen& idGen,

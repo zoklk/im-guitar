@@ -19,7 +19,6 @@ void Technician::update(int tick) {
 }
 
 void Technician::assign(Machine* m, int tick) {
-    // 호출 전제: Idle 상태에서만 호출. Working 중 재배정은 호출자 버그.
     assert(currentState_ == &TechnicianIdleState::instance());
     assert(m != nullptr);
     targetMachine_ = m;
@@ -34,4 +33,12 @@ void Technician::transitionTo(ITechnicianState& next, int tick) {
 
 bool Technician::isIdle() const {
     return currentState_ == &TechnicianIdleState::instance();
+}
+
+void Technician::restoreFromSnap(const TechnicianSnap& snap, Machine* target) {
+    repairProgress_ = snap.repairProgress;
+    targetMachine_  = target;
+    currentState_   = (target != nullptr)
+        ? static_cast<ITechnicianState*>(&TechnicianWorkingState::instance())
+        : static_cast<ITechnicianState*>(&TechnicianIdleState::instance());
 }

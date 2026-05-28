@@ -4,6 +4,8 @@
 
 #include "EventBroker.h"
 #include "MachineStates.h"
+#include "model/product/Product.h"
+#include "model/product/ProductSnap.h"
 
 Machine::Machine(std::string   id,
                  MachineType   type,
@@ -27,11 +29,15 @@ Machine::Machine(std::string   id,
       rng_(rng),
       idGen_(idGen) {
     currentState_ = &MachineIdleState::instance();
-    // 초기 상태 진입 알림 (tick=0). onEnter 부수효과는 없음 (Idle::onEnter 미정의).
 }
 
 void Machine::update(int tick) {
     currentState_->update(*this, tick);
+}
+
+bool Machine::canAcceptProduct(ProductType /*type*/) const {
+    // 1머신 1product: inputBuffer 차있으면 거부. Conveyor가 폴링으로 사전 차단.
+    return inputBuffer_.empty();
 }
 
 void Machine::acceptProduct(std::unique_ptr<Product> p) {
@@ -39,9 +45,7 @@ void Machine::acceptProduct(std::unique_ptr<Product> p) {
 }
 
 void Machine::handle(const Event& ev) {
-    // Factory.applyConfig가 (Fault, downstream.id) / (Resume, downstream.id) 토픽으로
-    // 구독시켜 호출. sourceId 필터링은 broker의 토픽 매칭이 처리하므로 여기서는
-    // type만 분기.
+    // sourceId 필터링은 broker의 토픽 매칭이 담당 → 여기선 type만 분기.
     switch (ev.type) {
         case EventType::Fault:
             ++pendingDownstreamFaults_;
@@ -97,7 +101,6 @@ bool Machine::tryPushOrDrop(std::unique_ptr<Product> p, int tick) {
     const int pid = p->getId();
     const ProductType pt = p->getType();
     publishEvent(EventType::Drop, tick, pid, pt);
-    // p는 함수 종료 시 unique_ptr 소멸로 자동 폐기
     return false;
 }
 
@@ -129,4 +132,53 @@ void Machine::publishStarted(int tick) {
         pt  = currentProduct_.front()->getType();
     }
     publishEvent(EventType::Started, tick, pid, pt);
+}
+
+// ── 메멘토 ─────────────────────────────────────────────────────────
+void Machine::serializeInputs(std::vector<ProductSnap>& out) const {
+    out.reserve(out.size() + inputBuffer_.size());
+    for (const auto& p : inputBuffer_) {
+        if (p) out.push_back(productToSnap(*p));
+    }
+}
+
+void Machine::clearInputs() {
+    inputBuffer_.clear();
+}
+
+void Machine::serializeCurrentProduct(std::vector<ProductSnap>& out) const {
+    out.reserve(out.size() + currentProduct_.size());
+    for (const auto& p : currentProduct_) {
+        if (p) out.push_back(productToSnap(*p));
+    }
+}
+
+void Machine::restoreFromSnap(const MachineSnap& snap) {
+    health_         = snap.health;
+    processingTick_ = snap.progress;
+    outputCount_    = snap.outputCount;
+    pendingDownstreamFaults_ = 0;   // 토픽 구독이 재설치되며 자연 재계산되도록 0으로 시작
+
+    // currentProduct_ 복원
+    currentProduct_.clear();
+    for (const auto& ps : snap.currentProduct) {
+        auto p = productFromSnap(ps);
+        if (p) currentProduct_.push_back(std::move(p));
+    }
+
+    // inputBuffer_ 복원 — 다형성 활용 (MultiInputMachine.acceptProduct가 typedBuffer로 분류)
+    clearInputs();
+    for (const auto& ps : snap.inputBuffer) {
+        auto p = productFromSnap(ps);
+        if (p) acceptProduct(std::move(p));
+    }
+
+    // currentState_ derive: health==0 → Broken, currentProduct/progress 있으면 Processing, else Idle
+    if (health_ <= 0) {
+        currentState_ = &MachineBrokenState::instance();
+    } else if (!currentProduct_.empty() || processingTick_ > 0) {
+        currentState_ = &MachineProcessingState::instance();
+    } else {
+        currentState_ = &MachineIdleState::instance();
+    }
 }

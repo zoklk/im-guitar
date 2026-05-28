@@ -12,7 +12,7 @@ class EventBroker;
 class Product;
 class ProductIdGen;
 
-// ElecPartCollector: Bridge + Pickup → ElecPartSet (sourceCount 2).
+// ElecPartCollector: Bridge + Pickup → ElecPartSet
 class ElecPartCollector : public MultiInputMachine {
 public:
     ElecPartCollector(std::string   id,

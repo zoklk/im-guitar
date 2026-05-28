@@ -28,13 +28,10 @@ void Packager::process(int tick) {
     auto       input = std::move(currentProduct_.back());
     currentProduct_.pop_back();
     const int  pid   = input->getId();
-    const auto ptype = input->getType();   // 정상 토폴로지에서 FinishedGuitar
+    const auto ptype = input->getType();
 
-    // input은 함수 종료 시 unique_ptr 소멸로 자동 폐기 (출하 = 시스템에서 제거)
-
-    // 시스템 출하 마커 — Statistics가 wip -= sourceCount(FinishedGuitar)=5 + finished++
+    // input은 함수 종료 시 unique_ptr 소멸로 폐기 (출하 = 시스템에서 제거)
     publishEvent(EventType::Packaged, tick, pid, ptype);
-    // 라이프사이클 마커 — output 없지만 처리 완료 의미
     publishEvent(EventType::Completed, tick, pid, ptype);
-    ++outputCount_;   // UI에서 "출하된 guitar 수"로 표시
+    ++outputCount_;
 }

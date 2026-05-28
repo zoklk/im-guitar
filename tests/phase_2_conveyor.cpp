@@ -21,7 +21,9 @@ namespace {
 struct MockMachine : public IMachine {
     std::vector<std::unique_ptr<Product>> received;
     std::string                           id_ = "M_mock";
+    bool                                  acceptAll = true;   // 테스트 fixture 제어
 
+    bool canAcceptProduct(ProductType /*type*/) const override { return acceptAll; }
     void acceptProduct(std::unique_ptr<Product> p) override {
         received.push_back(std::move(p));
     }

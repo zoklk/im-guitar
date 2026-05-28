@@ -4,8 +4,6 @@
 
 #include "model/product/Product.h"
 
-// ── BodyAssembler ───────────────────────────────────────────
-
 BodyAssembler::BodyAssembler(std::string   id,
                              int           processingTime,
                              double        breakdownProb,
@@ -31,8 +29,6 @@ std::unique_ptr<Product> BodyAssembler::makeOutput(
     std::vector<std::unique_ptr<Product>> /*inputs*/, int newId) {
     return std::make_unique<AssembledBody>(newId);
 }
-
-// ── PartAssembler ───────────────────────────────────────────
 
 PartAssembler::PartAssembler(std::string   id,
                              int           processingTime,

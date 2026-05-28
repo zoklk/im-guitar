@@ -96,29 +96,26 @@
 
 브랜치: `back/feat/orchestrator`. 상세: [phase_5_orchestrator.md](phases/phase_5_orchestrator.md)
 
-- [ ] `TechnicianManager` — `Fault` 구독, 수리 대기 큐(packager 의존성 기준 우선순위), idle Technician 배정
-- [ ] `MementoStore` — `std::deque<FactorySnap>`, 매 틱 push, `rewind(tick)` 복원
-- [ ] `ScenarioLoader` — JSON 파싱 → create cmd 목록 반환
-- [ ] `scenarios/*.json` 4개 (Normal / Breakdowns / Bottleneck / Overflow)
+- [x] `TechnicianManager` — `Fault` 구독, 수리 대기 큐(packager 의존성 기준 우선순위), idle Technician 배정
+- [x] `MementoStore` — `std::deque<FactorySnap>`, 매 틱 push, `rewind(tick)` 복원
+- [x] `ScenarioLoader` — JSON 파싱 → create cmd 목록 반환
+- [x] `scenarios/*.json` 4개 (Normal / Breakdowns / Bottleneck / Overflow)
 
-## Phase 6 — Factory & SimulationRunner
+## Phase 6 — Factory + SimulationRunner + Controller (backend 마무리)
 
-브랜치: `back/feat/factory`. 상세: [phase_6_factory.md](phases/phase_6_factory.md)
+브랜치: `back/feat/orchestrator` (Phase 5 + 6 통합) 또는 `back/feat/factory-controller`. 상세: [phase_6_factory.md](phases/phase_6_factory.md)
 
-- [ ] `Factory` — `unique_ptr` 컨테이너, `createMachine/createConveyor/createTechnician`, 외부 cmd 메서드 (`start/pause/reset/setSpeed/setScenario/forceBreak/instantRepair/rewind/clearLog`), `snapshot()`
-- [ ] `Factory.applyConfig` — Backpressure 토픽 구독 + (SmartFactory 시) Fault cascade DAG closure 계산 후 (Fault/Resume, x.id) 토픽 일괄 구독
-- [ ] `Factory.tick()` — base 포인터 루프로 모든 객체 `update()`, broker `flush()` 호출은 Runner가 담당
-- [ ] `SimulationRunner` — `tickInterval`, accumulator, running, `tryAdvance(realDt)` 한 번에 `factory.tick()` + `broker.flush()` + `mementoStore.push()` 호출
-- [ ] RNG (`std::mt19937`) + `ProductIdGen` 보유, Reset 시 시드 재발급 + 카운터 0 리셋, 메멘토 직렬화/복원
+> **작업 범위**: backend (`model/` + `controller/`)만. View 패널과 `main.cpp`의 backend↔view 와이어링은 별도 frontend phase에서 진행.
 
-## Phase 7 — Controller & 통합
-
-브랜치: `back/feat/main-integration`. 상세: [phase_7_integration.md](phases/phase_7_integration.md)
-
-- [ ] `Controller::dispatch(MachineCmd)` — action 분기 → Factory 도메인 메서드 / Runner 메서드 호출
-- [ ] `main.cpp` — Factory + Runner + Controller + View 생성 및 와이어링, 매 프레임 `runner.tryAdvance(io.DeltaTime)`
-- [ ] UML 다이어그램 마감
-- [ ] GitHub Pages 배포
+- [x] `Factory` — `unique_ptr` 컨테이너, `createMachine/Conveyor/Technician` (타입별 switch 1곳), 외부 cmd 메서드 (`reset/setScenario/forceBreak/instantRepair/clearLog`), `IMachineLookup` 구현, `findMachine/findConveyor/findTechnician`
+- [x] `Factory.applyConfig` — 와이어링 + priority map BFS 주입 + (SmartFactory 시) Backpressure / Fault cascade 토픽 구독
+- [x] `Factory.tick()` — base 포인터 루프 (machines → conveyors → technicians → manager), `broker.flush()` 호출은 Runner가 담당
+- [x] `Factory.snapshot()` / `restore(snap)` — RNG 직렬화 포함, id 매칭 + 필드 일괄 덮어쓰기 + state derive
+- [x] `SimulationRunner` — `tickIntervalSec_` (0.6s/speed), accumulator, `tryAdvance(realDt)` 한 번에 `factory.tick + broker.flush + mementoStore.push`
+- [x] RNG (`std::mt19937`) + `ProductIdGen` Factory 보유, reset 시 시드 재발급 + 카운터 0
+- [x] `Controller::dispatch(MachineCmd)` — 11종 CmdAction → Factory / Runner / Loader / MementoStore 도메인 메서드 위임. 자체 상태 없음
+- [x] `TechnicianManager`에 `setLookup(IMachineLookup&)` setter 추가 → Factory와의 순환 의존 해결
+- [x] 정적 priorityTable 제거 → Factory.applyConfig의 BFS 결과를 `setPriorityMap`으로 주입
 
 ---
 
@@ -127,5 +124,4 @@
 | 시점 | 프론트 가능 작업 |
 |---|---|
 | Phase 0 머지 후 | mock `FactorySnap`으로 UI 레이아웃·위젯 검증 |
-| Phase 6 머지 후 | 진짜 Factory 데이터로 렌더링 검증 |
-| Phase 7 머지 후 | 진짜 Controller 경로로 버튼 입력 검증 |
+| Phase 6 머지 후 | 진짜 Factory + Controller 위에 View 패널 5종 + `main.cpp` 와이어링 작업. `runner.tryAdvance(io.DeltaTime)` 한 줄로 시뮬레이션 진행 |

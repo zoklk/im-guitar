@@ -29,6 +29,9 @@ subscribeAll(IEventHandler*)                       // 와일드카드 (EventLog 
 publish(Event)                                     // 큐에 적재, 즉시 호출 X
 flush()                                            // 큐 비우며 매칭 구독자 handle() 호출
 clearQueue()                                       // 미디스패치 잔량 폐기 (Reset cmd용)
+clearTopicSubscriptions()                          // 토픽 구독만 일괄 제거 (Factory.reset에서 머신 dangling 방지)
+restoreQueue(vector<Event>)                        // 메멘토 복원 — 큐를 snap의 pendingEvents로 일괄 교체
+snapshotQueue() const → vector<Event>             // 메멘토 직렬화 — 큐 잔량 복사 반환
 queueSize() const                                  // 큐 잔량 (테스트/검증용)
 ```
 
@@ -73,18 +76,20 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 
 ### `Statistics`
 
-`IEventHandler` 구현. 생성자에서 `EventBroker&`를 받아 4종 이벤트를 구독해 카운터를 자동 갱신. 외부에서 카운터를 직접 증감하는 setter는 노출하지 않음 (강결합 차단). 노출 API는 `getter ×4` + `reset()` + `handle()`.
+`IEventHandler` 구현. 생성자에서 `EventBroker&`를 받아 4종 이벤트를 구독해 카운터를 자동 갱신. 일반 코드 경로에서 카운터를 직접 증감하는 setter는 노출하지 않음 (강결합 차단). 노출 API는 `getter ×4` + `reset()` + `handle()` + `setSnapshot(finished, wip, breakdowns, lost)` (메멘토 복원 전용 일괄 set).
 
-이벤트 → 카운터 매핑:
-- `Started`   → `wip++`              (Spawner가 제품 생성 시 publish)
-- `Completed` → `finished++`, `wip--` (Packager가 출고 시 publish)
-- `Drop`      → `lost++`, `wip--`    (Conveyor가 overflow drop 시 publish)
-- `Fault`     → `breakdowns++`       (BrokenState 진입 시 publish)
-- `Resume` / `Backpressure` → 통계 무관 (구독 안 함)
+이벤트 → 카운터 매핑 (Phase 3에서 확정된 최종 정책):
+- `Spawned`  → `wip += sourceCount`                      (Spawner가 시스템 진입 시 publish, sourceCount=1)
+- `Packaged` → `wip -= sourceCount`, `finished++`         (Packager가 출고 시 publish, sourceCount=5)
+- `Drop`     → `wip -= sourceCount`, `lost += sourceCount` (Machine이 push 실패 시 publish)
+- `Fault`    → `breakdowns++`                             (BrokenState 진입 시 publish)
+- `Started` / `Completed` / `Resume` / `Backpressure` → 통계 무관 (구독 안 함, EventLog 가시성 전용)
+
+`sourceCount`는 ProductType별 정적 룩업 (Phase 3 WIP 회계 표 참조 — RawWood/Bridge/Pickup=1, ElecPartSet=2, AssembledBody=3, FinishedGuitar=5).
 
 `reset()`은 Reset cmd 경로에서 호출, 4 카운터 모두 0으로.
 
-> wip는 "현재 공정 중인 제품 수" 정의. Drop 시에도 wip--를 같이 해야 일관 — Drop 이벤트 단일 핸들러에서 묶어 처리.
+> wip는 "시스템에 남아있는 원자재 단위 수" 정의. Spawned/Packaged/Drop이 모두 sourceCount 단위로 가감되어 항상 0으로 닫힘. (Started/Completed는 라이프사이클 마커라 WIP 영향 없음 — 분리 결정은 Phase 3 참조)
 
 > 모든 카운터 변경 경로가 broker 이벤트 단일화 → Conveyor / Machine 등 발행자는 Statistics를 알 필요 없음. 카운터 의미 추가 시 `handle()` switch만 늘리면 됨.
 
@@ -92,8 +97,9 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 
 - `IEventHandler` 구현. 생성자에서 `broker.subscribeAll(this)` 호출
 - 내부 `deque<LogEntry>`, `static constexpr size_t kMaxEntries = 200`, FIFO drop
-- `handle(Event)`이 Event → `"[<type-name>] <sourceId>"` 텍스트 변환 후 push. EventType→string 헬퍼는 `EventLog.cpp` 익명 namespace 내부 (외부 비노출)
+- `handle(Event)`이 Event → `"[<type-name>] <sourceId>[ product#<id> (<productType>)]"` 텍스트 변환 후 push. productId가 있으면 뒤에 부착, productType이 있으면 괄호로 추가 (가시성 보강). EventType / ProductType → string 헬퍼는 `EventLog.cpp` 익명 namespace 내부 (외부 비노출)
 - `getLogs()` getter — `deque → vector` 복사 반환. Factory.snapshot()이 호출해 `FactorySnap.logs`에 복사
+- `setLogs(const vector<LogEntry>&)` — 메멘토 복원용 일괄 set (200 cap 유지)
 - `size()` getter — 테스트/검증용
 - `clear()` — ClearLog cmd 처리용
 
@@ -105,10 +111,10 @@ API: `next()` (전위 증가 후 반환), `peek() const` (현재값 조회), `se
 src/model/
 ├── event/    EventBroker.{h,cpp}  EventLog.{h,cpp}
 ├── product/  Product.h (추상 + 9종 derived 1파일)  ProductIdGen.h
-└── stats/    Statistics.h
+└── stats/    Statistics.{h,cpp}
 ```
 
-Product derived 9종은 데이터 거의 없어 한 헤더에 모음. Statistics / ProductIdGen은 inline 가능해서 헤더 only.
+Product derived 9종은 데이터 거의 없어 한 헤더에 모음. ProductIdGen은 inline 가능해서 헤더 only. Statistics는 sourceCount 룩업 + 멤버 변경이 .cpp에 들어가 헤더+cpp 분리.
 
 ## 빌드 인프라
 
@@ -134,4 +140,4 @@ CMake에 `model_lib` static library 추가 (`src/model/*.cpp` GLOB_RECURSE). PUB
 
 ## 후속
 
-- Event payload 타입 확정 → Phase 5에서 페이로드 목록 확정 후 결정
+- 메멘토 setter들(`setSnapshot` / `setLogs` / `restoreQueue` / `clearTopicSubscriptions`)은 Phase 6 Factory.restore 도입과 함께 추가됨 — Phase 1 시점엔 미구현이고, 인프라 자체는 Phase 1에서 완성

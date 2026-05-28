@@ -28,6 +28,7 @@ namespace {
 struct MockSink : public IMachine {
     std::vector<std::unique_ptr<Product>> received;
     std::string                           id_ = "sink";
+    bool canAcceptProduct(ProductType /*type*/) const override { return true; }
     void acceptProduct(std::unique_ptr<Product> p) override { received.push_back(std::move(p)); }
     const std::string& getId() const override { return id_; }
 };

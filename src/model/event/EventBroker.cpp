@@ -51,3 +51,26 @@ void EventBroker::clearQueue() {
     std::queue<Event> empty;
     std::swap(eventQueue_, empty);
 }
+
+void EventBroker::clearTopicSubscriptions() {
+    topicSubs_.clear();
+}
+
+void EventBroker::restoreQueue(const std::vector<Event>& events) {
+    std::queue<Event> empty;
+    std::swap(eventQueue_, empty);
+    for (const auto& ev : events) {
+        eventQueue_.push(ev);
+    }
+}
+
+std::vector<Event> EventBroker::snapshotQueue() const {
+    std::vector<Event> out;
+    out.reserve(eventQueue_.size());
+    std::queue<Event> copy = eventQueue_;
+    while (!copy.empty()) {
+        out.push_back(copy.front());
+        copy.pop();
+    }
+    return out;
+}
