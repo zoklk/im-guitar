@@ -33,6 +33,7 @@ struct MachineSnap {
 struct ConveyorSnap {
     std::string                             id;
     std::string                             downstreamId;
+    int                                     length = 5;
     std::vector<std::optional<ProductSnap>> slots;       // size = conveyor length, nullopt = 빈 슬롯
 };
 

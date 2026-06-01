@@ -5,8 +5,16 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <map>
+#include "../common/TextureLoader.h"
 
 enum class Anchor { Left, Right, Top, Bottom };
+
+struct ProductImage {
+    GLuint textureID = 0; // OpenGL 텍스처 ID
+    int width = 0;       // 원본 너비
+    int height = 0;      // 원본 높이
+};
 
 struct NodeInfo {
     ImVec2 pos;
@@ -26,6 +34,37 @@ class FactoryFloorPanel : public Panel {
 private:
     std::unordered_map<std::string, NodeInfo> nodes_;
     std::vector<ConvLayout> lines_;
+    // 물품 ID(예: "WOOD_BODY")와 이미지를 연결하는 맵
+    std::map<std::string, ProductImage> productImages;
+    bool imagesLoaded = false; // 이미지가 로딩되었는지 확인하는 플래그
+
+    // 이미지를 로딩하는 함수 (main loop 시작 전이나 render 함수 맨 처음에서 한 번만 호출)
+    void LoadProductImages() {
+        if (imagesLoaded) return; // 이미 로딩되었다면 건너뜀
+
+        // 🚨 중요: 팀원분이 준 이미지 파일들의 정확한 경로를 여기에 적어주세요!
+        // 예시: "assets/images/wood_body.png"
+        std::string baseMainPath = "../assets/images/"; // 이미지 파일들이 모여있는 폴더 경로
+
+        std::vector<std::string> productIDs = {
+            "WOOD_BODY", "WOOD_NECK", "WOOD_HEAD", "BODY_RAW", "BODY_PAINTED",
+            "NECK_RAW", "HEAD_RAW", "PICKUP", "BRIDGE", "ASSEMBLY_BODY", "ELEC", "GUITAR"
+        };
+
+        for (const auto& id : productIDs) {
+            ProductImage img;
+            // 파일명은 "WOOD_BODY.png" 처럼 ID와 대소문자를 맞춰서 저장해둔다고 가정합니다.
+            std::string filename = baseMainPath + id + ".png"; 
+
+            if (TextureLoader::LoadTextureFromFile(filename.c_str(), &img.textureID, &img.width, &img.height)) {
+                productImages[id] = img; // 로딩 성공하면 맵에 저장
+            } else {
+                std::printf("Failed to load image for: %s (Check path: %s)\n", id.c_str(), filename.c_str());
+                // 실패했을 때를 대비해 기본 갈색 네모를 그리기 위한 ID를 비워둡니다.
+            }
+        }
+        imagesLoaded = true;
+    }
 
     void initLayout() {
         if (!nodes_.empty()) return;
@@ -165,8 +204,43 @@ private:
             bool hasItem = (cSnap != nullptr && i < cSnap->slots.size() && cSnap->slots[i].has_value());
             if (hasItem) {
                 currentItems++;
-                drawList->AddRectFilled(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(180, 100, 50, 255), 2.0f);
-                drawList->AddRect(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(50, 20, 0, 255), 2.0f);
+                
+                // ─── [새로 추가된 이미지 그리기 로직] ───
+                std::string imageId;
+                switch (cSnap->slots[i]->type) {
+                    case ProductType::RawWood:        imageId = "WOOD_BODY"; break;
+                    case ProductType::HeadPart:       imageId = "HEAD_RAW"; break;
+                    case ProductType::NeckPart:       imageId = "NECK_RAW"; break;
+                    case ProductType::BodyPart:       
+                        imageId = cSnap->slots[i]->isPainted ? "BODY_PAINTED" : "BODY_RAW"; 
+                        break;
+                    case ProductType::Bridge:         imageId = "BRIDGE"; break;
+                    case ProductType::Pickup:         imageId = "PICKUP"; break;
+                    case ProductType::ElecPartSet:    imageId = "ELEC"; break;
+                    case ProductType::AssembledBody:  imageId = "ASSEMBLY_BODY"; break;
+                    case ProductType::FinishedGuitar: imageId = "GUITAR"; break;
+                    default:                          imageId = "UNKNOWN"; break;
+                }
+                
+                auto it = productImages.find(imageId); // 2. 변환된 문자열로 맵에서 이미지를 찾습니다.
+                
+                if (it != productImages.end() && it->second.textureID != 0) {
+                    // 1. 이미지가 정상 로딩된 경우
+                    const ProductImage& img = it->second;
+                    ImVec2 imageSize(24.0f, 24.0f); // 🚨 이미지가 너무 크거나 작으면 이 숫자를 조절하세요!
+                    
+                    ImVec2 pMin = ImVec2(slotPos.x - imageSize.x / 2.0f, slotPos.y - imageSize.y / 2.0f);
+                    ImVec2 pMax = ImVec2(slotPos.x + imageSize.x / 2.0f, slotPos.y + imageSize.y / 2.0f);
+                    
+                    // OpenGL 텍스처를 캔버스에 직접 그립니다.
+                    drawList->AddImage((void*)(intptr_t)img.textureID, pMin, pMax);
+                } else {
+                    // 2. 이미지가 맵에 없거나 로딩 실패한 경우 (기존의 예쁜 갈색 네모 유지)
+                    drawList->AddRectFilled(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(180, 100, 50, 255), 2.0f);
+                    drawList->AddRect(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(50, 20, 0, 255), 2.0f);
+                }
+                // ─── [이미지 그리기 로직 끝] ───
+
             } else {
                 drawList->AddCircleFilled(slotPos, 2.0f, IM_COL32(140, 140, 140, 255));
             }
@@ -210,7 +284,9 @@ private:
 public:
     FactoryFloorPanel() { initLayout(); }
 
-    void render(const FactorySnap& snap, Controller* ctrl) override {
+    void render(const FactorySnap& snap, MachineCmd& cmd) override {
+        LoadProductImages(); // 이미지를 한 번만 로딩하도록 호출
+        ImGui::SetNextWindowSize(ImVec2(1400, 650), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1400, 650), ImGuiCond_FirstUseEver);
         ImGui::Begin("Factory Floor", nullptr, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
