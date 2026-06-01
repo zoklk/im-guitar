@@ -33,7 +33,8 @@ struct MachineSnap {
 struct ConveyorSnap {
     std::string                             id;
     std::string                             downstreamId;
-    std::vector<std::optional<ProductSnap>> slots;       // nullopt = 빈 슬롯
+    int                                     length = 5;
+    std::vector<std::optional<ProductSnap>> slots;
 };
 
 struct TechnicianSnap {

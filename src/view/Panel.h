@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #pragma once
 
 #include "common/FactorySnap.h"
