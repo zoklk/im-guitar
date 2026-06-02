@@ -7,20 +7,23 @@
 #include "common/FactorySnap.h"
 #include "common/MachineCmd.h"
 
-// #include "ControlPanel.h"
-// #include "FactoryFloorPanel.h"
-// #include "InspectorPanel.h"
-// #include "EventLogPanel.h"
-// #include "StatisticsPanel.h"
+#include "ControlPanel.h"
+#include "FactoryFloorPanel.h"
+#include "InspectorPanel.h"
+#include "LogPanel.h"
+#include "StatisticsPanel.h"
 
 class View {
+private:
+    std::vector<std::unique_ptr<Panel>> panels_;
+
 public:
     View() {
-        // panels_.push_back(std::make_unique<ControlPanel>());
-        // panels_.push_back(std::make_unique<FactoryFloorPanel>());
-        // panels_.push_back(std::make_unique<InspectorPanel>());
-        // panels_.push_back(std::make_unique<EventLogPanel>());
-        // panels_.push_back(std::make_unique<StatisticsPanel>());
+        panels_.push_back(std::make_unique<ControlPanel>());
+        panels_.push_back(std::make_unique<FactoryFloorPanel>());
+        panels_.push_back(std::make_unique<InspectorPanel>());
+        panels_.push_back(std::make_unique<LogPanel>());
+        panels_.push_back(std::make_unique<StatisticsPanel>());
     }
 
     // 한 프레임에 두 액션 발생 시 마지막 패널의 입력이 우선
@@ -31,7 +34,4 @@ public:
         }
         return cmd;
     }
-
-private:
-    std::vector<std::unique_ptr<Panel>> panels_;
 };
