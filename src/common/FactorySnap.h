@@ -51,7 +51,7 @@ struct StatisticsSnap {
     int lost       = 0;
 };
 
-// TechnicianManager.repairQueue_ 한 entry의 직렬화 표현 (rewind 시 큐 잔량 복원용).
+// RepairDispatcher.repairQueue_ 한 entry의 직렬화 표현 (rewind 시 큐 잔량 복원용).
 struct RepairOrderSnap {
     std::string machineId;
     int         priority  = 0;
