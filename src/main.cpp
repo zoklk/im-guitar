@@ -11,6 +11,24 @@
 #include "imgui_impl_opengl3.h"
 #include <cstdio>
 
+#include "model/event/EventBroker.h"
+#include "model/event/EventLog.h"
+#include "model/factory/Factory.h"
+#include "model/factory/SimulationRunner.h"
+#include "model/machine/IMachineLookup.h"
+#include "model/memento/MementoStore.h"
+#include "model/scenario/ScenarioLoader.h"
+#include "model/technician_manager/TechnicianManager.h"
+#include "model/stats/Statistics.h"
+#include "controller/Controller.h"
+#include "view/View.h"
+
+// 초기화를 돕기 위한 임시 Lookup 클래스
+class TempLookup : public IMachineLookup {
+public:
+    Machine* findMachine(const std::string&) override { return nullptr; }
+};
+
 int main(int, char**)
 {
     // ── SDL init ──────────────────────────────────────────────
@@ -41,11 +59,22 @@ int main(int, char**)
     ImGui_ImplOpenGL3_Init("#version 130");
 
     // ── Phase 7 통합 지점: 도메인 객체 생성 ───────────────────
-    // Factory    factory;
-    // Controller controller(factory);
-    // View       view;
-    // factory.start();
+    EventBroker       broker;
+    EventLog          eventLog{broker};
+    Statistics        stats{broker};
+    MementoStore      mementoStore;
+    
+    TempLookup        tempLookup;
+    TechnicianManager mgr{broker, tempLookup};
+    Factory           factory{broker, eventLog, stats, mgr};
+    mgr.setLookup(factory); // Factory가 생성된 후 진짜 Lookup으로 연결
+    
+    SimulationRunner  runner{factory, broker, mementoStore};
+    ScenarioLoader    loader;
+    Controller        ctrl{factory, runner, mementoStore, loader};
+    View              view;
 
+    
     // ── Main loop ─────────────────────────────────────────────
     bool running = true;
     while (running) {
@@ -60,38 +89,11 @@ int main(int, char**)
         ImGui::NewFrame();
 
         // ── Phase 7 통합 지점: 한 프레임의 흐름 ───────────────
-        // factory.tickIfDue();                       // 600ms / speedMult 마다 1틱
-        // const FactorySnap snap = factory.snapshot();
-        // const MachineCmd  cmd  = view.render(snap);  // 위젯에서 cmd 작성
-        // controller.dispatch(cmd);
-
-        // ── UI 윈도우 5개 (필수요건 4절) ──────────────────────
-        ImGui::Begin("Simulation Control");
-        // TODO: Start / Pause / Reset 버튼, 속도 슬라이더(1~5), 시나리오 드롭다운, 틱 카운터
-        ImGui::Text("placeholder");
-        ImGui::End();
-
-        ImGui::Begin("Factory Floor");
-        // TODO: 머신 시각 맵, 상태별 색상(TextColored), Selectable 머신 항목,
-        //       Conveyor 적재량 ProgressBar, Technician 위치 표시
-        ImGui::Text("placeholder");
-        ImGui::End();
-
-        ImGui::Begin("Inspector");
-        // TODO: 선택된 머신의 state, health bar(ProgressBar), queue depth,
-        //       output count, processingTime, Force Break / Instant Repair 버튼
-        ImGui::Text("placeholder");
-        ImGui::End();
-
-        ImGui::Begin("Event Log");
-        // TODO: BeginChild로 스크롤 가능한 로그 목록(화면 10개), Clear 버튼
-        ImGui::Text("placeholder");
-        ImGui::End();
-
-        ImGui::Begin("Statistics");
-        // TODO: finished / wip / breakdowns / lost
-        ImGui::Text("placeholder");
-        ImGui::End();
+        double dt = ImGui::GetIO().DeltaTime;
+        runner.tryAdvance(dt);                               // 1. 공장 틱(가동) 진행 
+        const FactorySnap snap = factory.snapshot();      // 2. 백엔드에서 현재 상태 스냅샷 가져오기
+        const MachineCmd  cmd  = view.render(snap);       // 3. View가 스냅샷을 보고 화면을 그리고, 버튼 명령을 받아옴
+        ctrl.dispatch(cmd);                               // 4. 받아온 명령을 백엔드로 전달
 
         // ── Render ────────────────────────────────────────────
         ImGui::Render();
