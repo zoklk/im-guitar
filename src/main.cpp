@@ -18,7 +18,7 @@
 #include "model/machine/IMachineLookup.h"
 #include "model/memento/MementoStore.h"
 #include "model/scenario/ScenarioLoader.h"
-#include "model/technician_manager/TechnicianManager.h"
+#include "model/repair_dispatcher/RepairDispatcher.h"
 #include "model/stats/Statistics.h"
 #include "controller/Controller.h"
 #include "view/View.h"
@@ -63,18 +63,18 @@ int main(int, char**)
     EventLog          eventLog{broker};
     Statistics        stats{broker};
     MementoStore      mementoStore;
-    
+
     TempLookup        tempLookup;
-    TechnicianManager mgr{broker, tempLookup};
+    RepairDispatcher mgr{broker, tempLookup};
     Factory           factory{broker, eventLog, stats, mgr};
     mgr.setLookup(factory); // Factory가 생성된 후 진짜 Lookup으로 연결
-    
+
     SimulationRunner  runner{factory, broker, mementoStore};
     ScenarioLoader    loader;
     Controller        ctrl{factory, runner, mementoStore, loader};
     View              view;
 
-    
+
     // ── Main loop ─────────────────────────────────────────────
     bool running = true;
     while (running) {
@@ -90,7 +90,7 @@ int main(int, char**)
 
         // ── Phase 7 통합 지점: 한 프레임의 흐름 ───────────────
         double dt = ImGui::GetIO().DeltaTime;
-        runner.tryAdvance(dt);                               // 1. 공장 틱(가동) 진행 
+        runner.tryAdvance(dt);                               // 1. 공장 틱(가동) 진행
         const FactorySnap snap = factory.snapshot();      // 2. 백엔드에서 현재 상태 스냅샷 가져오기
         const MachineCmd  cmd  = view.render(snap);       // 3. View가 스냅샷을 보고 화면을 그리고, 버튼 명령을 받아옴
         ctrl.dispatch(cmd);                               // 4. 받아온 명령을 백엔드로 전달
