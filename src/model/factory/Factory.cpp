@@ -19,20 +19,20 @@
 #include "model/machine/painter/Painter.h"
 #include "model/machine/spawner/Spawners.h"
 #include "model/scenario/ScenarioConfig.h"
-#include "model/technician_manager/TechnicianManager.h"
+#include "model/repair_dispatcher/RepairDispatcher.h"
 #include "model/product/Product.h"
 #include "model/product/ProductSnap.h"
 #include "model/stats/Statistics.h"
 #include "model/technician/Technician.h"
 
-Factory::Factory(EventBroker&       broker,
-                 EventLog&          eventLog,
-                 Statistics&        statistics,
-                 TechnicianManager& technicianManager)
+Factory::Factory(EventBroker&      broker,
+                 EventLog&         eventLog,
+                 Statistics&       statistics,
+                 RepairDispatcher& repairDispatcher)
     : broker_(broker),
       eventLog_(eventLog),
       statistics_(statistics),
-      technicianManager_(technicianManager),
+      repairDispatcher_(repairDispatcher),
       rng_(std::random_device{}()) {}
 
 Factory::~Factory() = default;
@@ -45,8 +45,8 @@ void Factory::reset() {
     broker_.clearQueue();
     broker_.clearTopicSubscriptions();   // 머신이 등록한 토픽 구독만 제거 (typeSubs/globalSubs는 유지)
 
-    technicianManager_.clearQueue();
-    technicianManager_.clearTechnicians();
+    repairDispatcher_.clearQueue();
+    repairDispatcher_.clearTechnicians();
 
     technicians_.clear();
     machines_.clear();
@@ -90,7 +90,7 @@ void Factory::applyConfig(const ScenarioConfig& cfg) {
     // 3. technicians 생성 + manager 등록
     for (const auto& tdef : cfg.technicians) {
         Technician* t = createTechnician(tdef);
-        technicianManager_.registerTechnician(t);
+        repairDispatcher_.registerTechnician(t);
     }
 
     // 4. conveyor → downstream machine 와이어링
@@ -162,7 +162,7 @@ void Factory::computeAndInjectPriorityMap(const ScenarioConfig& cfg) {
         if (priorityMap.count(m.id) == 0) priorityMap[m.id] = 99;
     }
 
-    technicianManager_.setPriorityMap(std::move(priorityMap));
+    repairDispatcher_.setPriorityMap(std::move(priorityMap));
 }
 
 void Factory::subscribeBackpressureTopics(const ScenarioConfig& cfg) {
@@ -343,7 +343,7 @@ void Factory::tick() {
     for (auto& m : machines_)    m->update(tick_);
     for (auto& c : conveyors_)   c->update(tick_);
     for (auto& t : technicians_) t->update(tick_);
-    technicianManager_.update(tick_);
+    repairDispatcher_.update(tick_);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -406,7 +406,7 @@ FactorySnap Factory::snapshot() const {
         snap.technicians.push_back(std::move(ts));
     }
 
-    for (const auto& e : technicianManager_.getQueue()) {
+    for (const auto& e : repairDispatcher_.getQueue()) {
         RepairOrderSnap r;
         r.machineId = e.machine ? e.machine->getId() : std::string{};
         r.priority  = e.priority;
@@ -480,12 +480,12 @@ void Factory::restore(const FactorySnap& snap) {
     idGen_.setCounter(snap.productIdCounter);
 
     // manager queue
-    std::vector<TechnicianManager::QueueEntry> entries;
+    std::vector<RepairDispatcher::QueueEntry> entries;
     int maxSeq = -1;
     for (const auto& r : snap.pendingRepairs) {
         Machine* m = findMachine(r.machineId);
         if (m == nullptr) continue;
-        TechnicianManager::QueueEntry e;
+        RepairDispatcher::QueueEntry e;
         e.machine   = m;
         e.priority  = r.priority;
         e.faultTick = r.faultTick;
@@ -493,5 +493,5 @@ void Factory::restore(const FactorySnap& snap) {
         entries.push_back(e);
         if (r.seq > maxSeq) maxSeq = r.seq;
     }
-    technicianManager_.restoreQueue(entries, maxSeq + 1);
+    repairDispatcher_.restoreQueue(entries, maxSeq + 1);
 }

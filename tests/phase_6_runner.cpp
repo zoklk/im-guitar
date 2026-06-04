@@ -9,7 +9,7 @@
 #include "model/machine/IMachineLookup.h"
 #include "model/memento/MementoStore.h"
 #include "model/scenario/ScenarioConfig.h"
-#include "model/technician_manager/TechnicianManager.h"
+#include "model/repair_dispatcher/RepairDispatcher.h"
 #include "model/stats/Statistics.h"
 
 #include <gtest/gtest.h>
@@ -40,13 +40,13 @@ struct Harness {
     EventLog          eventLog{broker};
     Statistics        stats{broker};
     NullLookup        nullLookup;
-    TechnicianManager mgr{broker, nullLookup};
-    Factory           factory{broker, eventLog, stats, mgr};
+    RepairDispatcher dispatcher{broker, nullLookup};
+    Factory           factory{broker, eventLog, stats, dispatcher};
     MementoStore      mementoStore;
     SimulationRunner  runner{factory, broker, mementoStore};
 
     Harness() {
-        mgr.setLookup(factory);
+        dispatcher.setLookup(factory);
         factory.applyConfig(makeTinyConfig());
     }
 };
