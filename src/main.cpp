@@ -24,11 +24,79 @@
 #include "controller/Controller.h"
 #include "view/View.h"
 
+// 웹 빌드 위한 Emscripten 헤더 추가
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 // 초기화를 돕기 위한 임시 Lookup 클래스
 class TempLookup : public IMachineLookup {
 public:
     Machine* findMachine(const std::string&) override { return nullptr; }
 };
+
+// 루프에서 사용할 변수들을 구조체로 묶어서 관리
+struct AppContext {
+    EventBroker      broker;
+    EventLog         eventLog;
+    Statistics       stats;
+    MementoStore     mementoStore;
+    TempLookup       tempLookup;
+    RepairDispatcher mgr;
+    Factory          factory;
+    SimulationRunner runner;
+    ScenarioLoader   loader;
+    Controller       ctrl;
+    View             view;
+
+    SDL_Window* window = nullptr;
+    SDL_GLContext gl_context = nullptr;
+    bool running = true;
+
+    // 초기화 (참조 변수들이 꼬이지 않게 생성자 리스트 사용)
+    AppContext() 
+        : eventLog(broker), stats(broker), mgr(broker, tempLookup),
+          factory(broker, eventLog, stats, mgr),
+          runner(factory, broker, mementoStore),
+          ctrl(factory, runner, mementoStore, loader) 
+    {
+        mgr.setLookup(factory);
+    }
+};
+
+// 매 프레임마다 실행될 1회용 함수
+void MainLoopStep(void* arg) {
+    AppContext* app = (AppContext*)arg;
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL2_ProcessEvent(&event);
+        if (event.type == SDL_QUIT) app->running = false;
+    }
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    double dt = ImGui::GetIO().DeltaTime;
+    app->runner.tryAdvance(dt);
+    const FactorySnap snap = app->factory.snapshot();
+    const MachineCmd  cmd  = app->view.render(snap);
+    app->ctrl.dispatch(cmd);
+
+    ImGui::Render();
+    int w, h;
+    SDL_GetWindowSize(app->window, &w, &h);
+    glViewport(0, 0, w, h);
+    glClearColor(0.10f, 0.10f, 0.12f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    SDL_GL_SwapWindow(app->window);
+
+#ifdef __EMSCRIPTEN__
+    if (!app->running) emscripten_cancel_main_loop();
+#endif
+}
 
 int main(int, char**)
 {
@@ -38,9 +106,16 @@ int main(int, char**)
         return -1;
     }
 
+    // 데스크톱과 웹 브라우저의 그래픽 세팅 분리
+#ifdef __EMSCRIPTEN__
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
 
     SDL_Window* window = SDL_CreateWindow(
         "Electric Guitar Factory",
@@ -57,54 +132,28 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    // 웹의 경우 WebGL 전용 셰이더(#version 300 es) 사용
+#ifdef __EMSCRIPTEN__
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+#else
     ImGui_ImplOpenGL3_Init("#version 130");
+#endif
 
-    // ── Phase 7 통합 지점: 도메인 객체 생성 ───────────────────
-    EventBroker      broker;
-    EventLog         eventLog{broker};
-    Statistics       stats{broker};
-    MementoStore     mementoStore;
+    // Context 하나만 동적 할당하여 생성
+    AppContext* app = new AppContext();
+    app->window = window;
+    app->gl_context = gl_context;
 
-    TempLookup       tempLookup;
-    RepairDispatcher mgr{broker, tempLookup};
-    Factory          factory{broker, eventLog, stats, mgr};
-    mgr.setLookup(factory); // Factory가 생성된 후 진짜 Lookup으로 연결
-
-    SimulationRunner runner{factory, broker, mementoStore};
-    ScenarioLoader   loader;
-    Controller       ctrl{factory, runner, mementoStore, loader};
-    View             view;
-
-    // ── Main loop ─────────────────────────────────────────────
-    bool running = true;
-    while (running) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) running = false;
-        }
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
-
-        // ── Phase 7 통합 지점: 한 프레임의 흐름 ───────────────
-        double dt = ImGui::GetIO().DeltaTime;
-        runner.tryAdvance(dt);                             // 1. 공장 틱(가동) 진행
-        const FactorySnap snap = factory.snapshot();       // 2. 백엔드에서 현재 상태 스냅샷 가져오기
-        const MachineCmd  cmd  = view.render(snap);        // 3. View가 스냅샷을 보고 화면을 그리고, 명령 받아옴
-        ctrl.dispatch(cmd);                                // 4. 받아온 명령을 백엔드로 전달
-
-        // ── Render ────────────────────────────────────────────
-        ImGui::Render();
-        int w, h;
-        SDL_GetWindowSize(window, &w, &h);
-        glViewport(0, 0, w, h);
-        glClearColor(0.10f, 0.10f, 0.12f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(window);
+    // 데스크톱 / 웹 실행 방식 분기
+#ifdef __EMSCRIPTEN__
+    // 웹 브라우저용 Emscripten 메인 루프 등록
+    emscripten_set_main_loop_arg(MainLoopStep, app, 0, true);
+#else
+    // 기존 데스크톱용 무한 루프
+    while (app->running) {
+        MainLoopStep(app);
     }
+#endif
 
     // ── Cleanup ───────────────────────────────────────────────
     ImGui_ImplOpenGL3_Shutdown();
@@ -113,5 +162,7 @@ int main(int, char**)
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    delete app;
     return 0;
 }
