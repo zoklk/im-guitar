@@ -9,10 +9,7 @@ private:
 
 public:
     void render(const FactorySnap& snap, MachineCmd& cmd) override {
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(300, 180), ImGuiCond_FirstUseEver);
-        
-        ImGui::Begin("Simulation Control");
+        ImGui::BeginChild("Simulation Control", ImVec2(0, 200), true);
 
         ImGui::Text("Guitar Factory Control");
         ImGui::Separator();
@@ -66,6 +63,6 @@ public:
             ImGui::SetTooltip("Go back in time to fix mistakes!");
         }
 
-        ImGui::End();
+        ImGui::EndChild();
     }
 };

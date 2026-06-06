@@ -5,9 +5,7 @@
 class LogPanel : public Panel {
 public:
     void render(const FactorySnap& snap, MachineCmd& cmd) override {
-        ImGui::SetNextWindowPos(ImVec2(10, 420), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(300, 240), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Event Log");
+        ImGui::BeginChild("Event Log", ImVec2(0, 0), true);
 
         // 제목에 현재 진행 중인 시간(Tick) 표시
         ImGui::Text("Simulation Logs (Tick: %d)", snap.tick);
@@ -26,6 +24,6 @@ public:
         }
 
         ImGui::EndChild();
-        ImGui::End();
+        ImGui::EndChild();
     }
 };

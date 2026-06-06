@@ -40,6 +40,44 @@ private:
     std::map<std::string, ProductImage> productImages;
     bool imagesLoaded = false;
 
+    std::map<std::string, GLuint> machineTextures_;
+    bool machineTexturesLoaded_ = false;
+
+    void LoadMachineTextures() {
+        if (machineTexturesLoaded_) return;
+        
+        std::map<std::string, std::string> files = {
+            {"Wood Spawner", "Wood Spawner.png"},
+            {"Body Cutter", "Body Cutter.png"},
+            {"Neck Cutter", "Neck Cutter.png"},
+            {"Head Cutter", "Head Cutter.png"},
+            {"Painter", "Painter.png"},
+            {"Body Assembler", "Body Assembler.png"},
+            {"Pickup Spawner", "Pickup Spawner.png"},
+            {"Bridge Spawner", "Bridge Spawner.png"},
+            {"Part Assembler", "Part Assembler.png"},
+            {"Elec Part Collector", "Elec Part Collector.png"},
+            {"Packager", "Packager.png"}
+        };
+
+        for (const auto& pair : files) {
+            GLuint tex = 0; int w, h;
+            std::string path = "../assets/images/" + pair.second; 
+            
+            if (TextureLoader::LoadTextureFromFile(path.c_str(), &tex, &w, &h)) {
+                machineTextures_[pair.first] = tex;
+            } else {
+                std::string altPath = "../assets/images/" + pair.first;
+                for(char& c : altPath) { if(c == ' ') c = '_'; }
+                altPath += ".png";
+                if (TextureLoader::LoadTextureFromFile(altPath.c_str(), &tex, &w, &h)) {
+                    machineTextures_[pair.first] = tex;
+                }
+            }
+        }
+        machineTexturesLoaded_ = true;
+    }
+
     void LoadProductImages() {
         if (imagesLoaded) return;
 
@@ -117,7 +155,7 @@ private:
     }
 
     ImVec2 getAnchorOffset(Anchor anchor) {
-        float w = 120.0f; float h = 90.0f;
+        float w = 120.0f; float h = 125.0f;
         switch(anchor) {
             case Anchor::Left:   return ImVec2(0, h / 2.0f);
             case Anchor::Right:  return ImVec2(w, h / 2.0f);
@@ -129,25 +167,37 @@ private:
 
     void DrawMachineNode(const MachineSnap& mSnap, const NodeInfo& info) {
         ImVec4 bgColor = info.baseColor;
+        bgColor.x *= 0.25f;
+        bgColor.y *= 0.25f;
+        bgColor.z *= 0.25f;
+
         const char* statusText = "IDLE";
+        ImVec4 statusColor = ImVec4(0.8f, 0.8f, 0.8f, 1.0f); // 텍스트 색상
 
         if (mSnap.health == 0) {
-            bgColor = ImVec4(0.2f, 0.0f, 0.0f, 1.0f); 
+            bgColor = ImVec4(0.4f, 0.1f, 0.1f, 1.0f); 
             statusText = "BROKEN!";
+            statusColor = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
         } else if (mSnap.suspended) {
             statusText = "SUSPENDED";
+            statusColor = ImVec4(0.9f, 0.7f, 0.0f, 1.0f);
         } else if (!mSnap.currentProduct.empty()) {
             statusText = "WORKING";
+            statusColor = ImVec4(0.3f, 1.0f, 0.3f, 1.0f);
             bgColor.x = std::min(1.0f, bgColor.x + 0.15f);
             bgColor.y = std::min(1.0f, bgColor.y + 0.15f);
             bgColor.z = std::min(1.0f, bgColor.z + 0.15f);
         }
 
         ImGui::SetCursorPos(info.pos);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, bgColor);
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 15.0f); 
         
-        ImGui::BeginChild(mSnap.id.c_str(), ImVec2(120, 90), true, ImGuiWindowFlags_NoScrollbar);
+        // 패널 배경 처리 (불투명하게)
+        bgColor.w = 1.0f; 
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, bgColor);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f); 
+        
+        // 높이를 125로 늘려서 이미지 공간을 확보합니다
+        ImGui::BeginChild(mSnap.id.c_str(), ImVec2(120, 125), true, ImGuiWindowFlags_NoScrollbar);
         
         bool isSelected = (g_selectedMachineId == mSnap.id);
         if (ImGui::Selectable(info.displayName.c_str(), isSelected, 0, ImVec2(110, 15))) {
@@ -156,8 +206,47 @@ private:
 
         ImGui::Separator();
         
-        ImGui::Text("%s", statusText);
-        ImGui::ProgressBar(mSnap.health / 10.0f, ImVec2(-1, 0), "");
+        // if (machineTextures_.find(info.displayName) != machineTextures_.end() && machineTextures_[info.displayName] != 0) {
+        //     GLuint tex = machineTextures_[info.displayName];
+    
+        //     // 이 정보는 이미 TextureLoader에서 로드할 때 얻어둔 것이라면 좋겠지만, 
+        //     // 없다면 일단 80:60 대신 가로 80에 맞춘 세로 비율을 적용해봅니다.
+        //     float targetWidth = 80.0f;
+        //     float targetHeight = 80.0f * (280.0f / 239.0f); // 239x280 비율 적용 (약 93.7f)
+            
+        //     ImGui::SetCursorPosX(20.0f); 
+        //     ImGui::Image((void*)(intptr_t)tex, ImVec2(targetWidth, targetHeight));
+        // } else {
+        //     ImGui::Dummy(ImVec2(80, 60)); // 이미지 로드 실패 시 빈칸 유지
+        // }
+        if (machineTextures_.find(info.displayName) != machineTextures_.end() && machineTextures_[info.displayName] != 0) {
+            // 80x60 -> 64x48 (0.8배)
+            float newWidth = 64.0f;
+            float newHeight = 48.0f;
+            
+            ImGui::SetCursorPosX(28.0f); 
+            
+            ImGui::Image((void*)(intptr_t)machineTextures_[info.displayName], ImVec2(newWidth, newHeight)); 
+        } else {
+            ImGui::Dummy(ImVec2(64, 48)); // 이미지 로드 실패 시에도 크기 맞춤
+        }
+
+        // 상태 텍스트 예쁘게 중앙 정렬
+        float textWidth = ImGui::CalcTextSize(statusText).x;
+        ImGui::SetCursorPosX((120.0f - textWidth) * 0.5f);
+        ImGui::TextColored(statusColor, "%s", statusText);
+
+        // 체력바
+        if (mSnap.health == 0) {
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+        }
+        
+        // maxHealth를 기준으로 얇은 체력바 렌더링
+        float hpRatio = (mSnap.maxHealth > 0) ? (mSnap.health / (float)mSnap.maxHealth) : 0.0f;
+        ImGui::ProgressBar(hpRatio, ImVec2(-1, 4), ""); 
+        ImGui::PopStyleColor();
         
         ImGui::EndChild();
         ImGui::PopStyleVar();
@@ -327,8 +416,11 @@ private:
     } // DrawConveyor 함수 끝
 
     void DrawTechnicianManager(const FactorySnap& snap) {
-        ImGui::SetCursorPos(ImVec2(1180, 420));
-        
+        if (snap.technicians.empty()) {
+            return;
+        }
+
+        ImGui::SetCursorPos(ImVec2(20, 460));
         ImGui::BeginChild("TechManager", ImVec2(200, 240), true);
         ImGui::Text("Technician Manager");
         ImGui::Separator();
@@ -337,25 +429,30 @@ private:
         bool hasTechImage = (it != productImages.end() && it->second.textureID != 0);
 
         for (const auto& tech : snap.technicians) {
-            if (hasTechImage) {
-                ImGui::Image((void*)(intptr_t)it->second.textureID, ImVec2(50, 50));            
-            } else {
-                ImGui::Bullet();
+            bool isWorking = tech.targetMachineId.has_value();
+
+            // 🌟 핵심: 일하지 않고 대기 중일 때만 얼굴(이미지)을 그립니다!
+            if (!isWorking && hasTechImage) {
+                ImGui::Image((void*)(intptr_t)it->second.textureID, ImVec2(50, 50));
+            } else if (!isWorking) {
+                ImGui::Bullet(); 
             }
             
-            // 이름과 상태 텍스트
-            const char* stateMsg = tech.targetMachineId.has_value() ? "Working" : "Idle";
-            
+            // 이름표 생성
             std::string displayName = tech.id;
-            if (tech.id == "TECH_1") {
-                displayName = "jincheol";
-            } else if (tech.id == "TECH_2") {
-                displayName = "jaeyong";
-            }
-            ImGui::Text("%s (%s)", displayName.c_str(), stateMsg);
-            
-            if (tech.targetMachineId.has_value()) {
-                ImGui::Text("    -> %s", tech.targetMachineId.value().c_str());
+            if (tech.id == "TECH_1") displayName = "jincheol";
+            else if (tech.id == "TECH_2") displayName = "jaeyong";
+
+            // 상태 표시 텍스트
+            if (isWorking) {
+                // 일하러 갔을 때는 글씨를 회색으로 흐리게!
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                ImGui::Text("%s (Working)", displayName.c_str());
+                ImGui::Text("  -> repairing:");
+                ImGui::Text("     %s", tech.targetMachineId.value().c_str());
+                ImGui::PopStyleColor();
+            } else {
+                ImGui::Text("%s (Idle)", displayName.c_str());
             }
             
             ImGui::Spacing();
@@ -364,23 +461,94 @@ private:
         ImGui::EndChild();
     }
 
+    void DrawTechniciansOnFloor(const FactorySnap& snap) {
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        float scrollX = ImGui::GetScrollX();
+        float scrollY = ImGui::GetScrollY();
+
+        auto it = productImages.find("TECHNICIAN");
+        if (it == productImages.end() || it->second.textureID == 0) return;
+
+        GLuint texID = it->second.textureID;
+        float width = 45.0f;  
+        float height = 45.0f; 
+
+        for (const auto& tech : snap.technicians) {
+            // 🌟 수리 중(출동 상태)일 때만 기계 옆에 이미지를 그립니다!
+            if (tech.targetMachineId.has_value()) {
+                std::string targetId = tech.targetMachineId.value();
+                auto nodeIt = nodes_.find(targetId);
+                
+                if (nodeIt != nodes_.end()) {
+                    ImVec2 mPos = nodeIt->second.pos;
+
+                    // 1. 통통 튀는 애니메이션 마법
+                    float time = ImGui::GetTime();
+                    float bounce = std::sin(time * 8.0f) * 5.0f; 
+
+                    // 2. 고장 난 기계의 우측 상단으로 텔레포트 좌표 설정
+                    float offsetX = 90.0f;
+                    float offsetY = -20.0f;
+
+                    ImVec2 pMin = ImVec2(
+                        mPos.x + windowPos.x - scrollX + offsetX,
+                        mPos.y + windowPos.y - scrollY + offsetY + bounce // 바운스!
+                    );
+                    ImVec2 pMax = ImVec2(pMin.x + width, pMin.y + height);
+
+                    // 3. 그림자 (지난번 에러 고친 안전한 ImVec2 버전)
+                    ImVec2 shadowCenter = ImVec2(
+                        mPos.x + windowPos.x - scrollX + offsetX + width / 2.0f,
+                        mPos.y + windowPos.y - scrollY + offsetY + height + 5.0f
+                    );
+                    drawList->AddEllipseFilled(shadowCenter, ImVec2(15.0f, 5.0f), IM_COL32(0, 0, 0, 80));
+
+                    // 4. 수리공 이미지 그리기
+                    drawList->AddImage((void*)(intptr_t)texID, pMin, pMax);
+
+                    // 5. 머리 위 이름표
+                    std::string displayName = tech.id;
+                    if (tech.id == "TECH_1") displayName = "jincheol";
+                    else if (tech.id == "TECH_2") displayName = "jaeyong";
+
+                    ImVec2 textSize = ImGui::CalcTextSize(displayName.c_str());
+                    ImVec2 textPos = ImVec2(pMin.x + (width - textSize.x) / 2.0f, pMin.y - 15.0f);
+                    
+                    drawList->AddRectFilled(ImVec2(textPos.x - 2, textPos.y - 1), ImVec2(textPos.x + textSize.x + 2, textPos.y + textSize.y + 1), IM_COL32(0, 0, 0, 180), 3.0f);
+                    drawList->AddText(textPos, IM_COL32(255, 255, 100, 255), displayName.c_str());
+                }
+            }
+        }
+    }
+
+    void DrawProportionalImage(GLuint tex, float width, float targetWidth, float targetHeight) {
+        // 텍스트 비율 유지 계산: targetWidth에 맞춰 비율대로 높이 산출
+        float ratio = targetHeight / targetWidth;
+        ImGui::Image((void*)(intptr_t)tex, ImVec2(width, width * ratio));
+    }
+
 public:
     FactoryFloorPanel() { initLayout(); }
 
     ~FactoryFloorPanel() {
         for (auto& pair : productImages) {
             if (pair.second.textureID != 0) {
-                // OpenGL 텍스처 메모리 해제
                 GLuint tex = pair.second.textureID;
                 glDeleteTextures(1, &tex); 
+            }
+        }
+        for (auto& pair : machineTextures_) {
+            if (pair.second != 0) {
+                glDeleteTextures(1, &pair.second);
             }
         }
     }
 
     void render(const FactorySnap& snap, MachineCmd& cmd) override {
-        LoadProductImages(); 
-        ImGui::SetNextWindowSize(ImVec2(1400, 650), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Factory Floor", nullptr, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+        LoadProductImages();
+        LoadMachineTextures();
+        ImGui::BeginChild("Factory Floor", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
         for (const auto& line : lines_) {
             const ConveyorSnap* foundConv = nullptr;
@@ -398,8 +566,8 @@ public:
                 DrawMachineNode(mSnap, it->second);
             }
         }
-
+        DrawTechniciansOnFloor(snap);
         DrawTechnicianManager(snap);
-        ImGui::End();
+        ImGui::EndChild();
     }
 };
