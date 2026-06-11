@@ -117,6 +117,8 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    
+    // 🌟 불필요한 조건문을 걷어내고 데스크톱용 셰이더만 남겼습니다.
     ImGui_ImplOpenGL3_Init("#version 130");
 
     // Context 하나만 동적 할당하여 생성
@@ -124,6 +126,7 @@ int main(int, char**)
     app->window = window;
     app->gl_context = gl_context;
 
+    // 🌟 불필요한 #endif 찌꺼기들을 전부 삭제했습니다.
     // 데스크톱용 무한 루프
     while (app->running) {
         MainLoopStep(app);

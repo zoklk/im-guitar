@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.15)
 project(im_guitar CXX)
 
+# Emscripten (WebAssembly) 빌드인 경우의 추가 설정
+if(EMSCRIPTEN)
+    # 컴파일 시 SDL2 사용
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -s ALLOW_MEMORY_GROWTH=1")
+    
+    # 링크 시에도 SDL2 사용 + 이미지 폴더 패키징
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_SDL=2 --preload-file ${CMAKE_SOURCE_DIR}/assets@/assets")
+    
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
