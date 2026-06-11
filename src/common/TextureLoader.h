@@ -25,19 +25,21 @@ namespace TextureLoader {
         glGenTextures(1, &image_texture);
         glBindTexture(GL_TEXTURE_2D, image_texture);
 
-        // 텍스처 필터링 설정
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // 텍스처 필터링 설정 (밉맵 활성화)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         
         // 텍스처 가장자리 처리
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
         // 업로드
-#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+#if defined(GL_UNPACK_ROW_LENGTH)
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+
         stbi_image_free(image_data);
 
         *out_texture = image_texture;

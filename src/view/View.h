@@ -56,23 +56,25 @@ public:
         ImGui::BeginChild("LeftMainArea", ImVec2(leftMainWidth, 0), false);
             
             // ── [좌측 상단 띠] (컨트롤, 통계, 로그) ──
-            ImGui::BeginChild("TopRow", ImVec2(0, 240), false);
-                float colWidth = ImGui::GetContentRegionAvail().x / 3.0f;
+            ImGui::BeginChild("TopRow", ImVec2(0, 200), false);
+                
+                // 패널 사이의 간격(SameLine 여백)을 고려해서 정확히 3등분
+                float colWidth = (ImGui::GetContentRegionAvail().x - 16.0f) / 3.0f; 
                 
                 // 1-1. 컨트롤 패널
-                ImGui::BeginChild("Col1", ImVec2(colWidth, 0), false);
+                ImGui::BeginChild("Col1", ImVec2(colWidth, 0), true, ImGuiWindowFlags_NoScrollbar);
                     controlPanel->render(snap, cmd);
                 ImGui::EndChild();
                 ImGui::SameLine();
 
                 // 1-2. 통계 패널
-                ImGui::BeginChild("Col2", ImVec2(colWidth, 0), false);
+                ImGui::BeginChild("Col2", ImVec2(colWidth, 0), true, ImGuiWindowFlags_NoScrollbar);
                     statsPanel->render(snap, cmd);
                 ImGui::EndChild();
                 ImGui::SameLine();
 
-                // 1-3. 로그 패널 (기존 인스펙터 자리로 이사옴!)
-                ImGui::BeginChild("Col3", ImVec2(0, 0), false);
+                // 1-3. 로그 패널
+                ImGui::BeginChild("Col3", ImVec2(0, 0), true);
                     logPanel->render(snap, cmd);
                 ImGui::EndChild();
             ImGui::EndChild();

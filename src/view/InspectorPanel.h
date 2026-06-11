@@ -37,7 +37,7 @@ private:
             if (TextureLoader::LoadTextureFromFile(path.c_str(), &tex, &w, &h)) {
                 machineTextures[pair.first] = tex;
             } else {
-                // 2. 만약 실패하면, 띄어쓰기를 언더스코어(_)로 바꿔서 한 번 더 시도!
+                // 2. 만약 실패하면, 띄어쓰기를 언더스코어(_)로 바꿔서 한 번 더 시도
                 std::string altPath = "../assets/images/" + pair.first;
                 for(char& c : altPath) { if(c == ' ') c = '_'; }
                 altPath += ".png";
@@ -104,7 +104,6 @@ public:
             return;
         }
 
-        // ─── 🌟 [추가된 핵심 기능] 인스펙터 최상단에 기계 이미지 띄우기! ───
         std::string mType = getMachineType(selectedMachine->id);
         if (!mType.empty() && machineTextures.find(mType) != machineTextures.end()) {
             GLuint tex = machineTextures[mType];
@@ -197,6 +196,35 @@ public:
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+
+        // ───  엑스레이 (X-Ray) 모듈 ───
+        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "Internal Products");
+        ImGui::BeginChild("XRayBox", ImVec2(0, 80), true);
+        if (selectedMachine->currentProduct.empty()) {
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Empty");
+        } else {
+            for (const auto& prod : selectedMachine->currentProduct) {
+                // 타입에 따라 이름 변환
+                std::string pName = "Unknown";
+                switch(prod.type) {
+                    case ProductType::RawWood: pName = "Raw Wood"; break;
+                    case ProductType::HeadPart: pName = "Head Part"; break;
+                    case ProductType::NeckPart: pName = "Neck Part"; break;
+                    case ProductType::BodyPart: pName = prod.isPainted ? "Painted Body" : "Raw Body"; break;
+                    case ProductType::Bridge: pName = "Bridge"; break;
+                    case ProductType::Pickup: pName = "Pickup"; break;
+                    case ProductType::ElecPartSet: pName = "Elec Part Set"; break;
+                    case ProductType::AssembledBody: pName = "Assembled Body"; break;
+                    case ProductType::FinishedGuitar: pName = "Finished Guitar"; break;
+                }
+                ImGui::BulletText("ID: #%d | %s", prod.id, pName.c_str());
+            }
+        }
+        ImGui::EndChild();
+
+        ImGui::Spacing();
+        // ─── 엑스레이 끝 ───
+
 
         if (ImGui::Button("Force Break")) {
             cmd.action = CmdAction::ForceBreak;
