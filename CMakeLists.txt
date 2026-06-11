@@ -72,16 +72,8 @@ target_include_directories(imgui PUBLIC
 # ---------------------------------------------------------------------------
 # SDL2 / OpenGL
 # ---------------------------------------------------------------------------
-if(EMSCRIPTEN)
-    # 웹 환경에서는 내장된 SDL2를 사용하므로 find_package 없이 인터페이스 라이브러리만 만들어서 링크
-    set(SDL2_LIBRARIES "")
-    set(SDL2_INCLUDE_DIRS "")
-    add_library(SDL2::SDL2 INTERFACE IMPORTED)
-    add_library(SDL2::SDL2main INTERFACE IMPORTED)
-else()
-    # 데스크톱 빌드인 경우 시스템에 설치된 SDL2를 찾아 링크
-    find_package(SDL2 REQUIRED)
-endif()
+# 시스템에 설치된 SDL2를 찾아 링크
+find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
 
 if(TARGET SDL2::SDL2)

@@ -118,23 +118,23 @@ private:
         float col4 = 780.0f;
         float col5 = 1030.0f;
 
-        float midY = 245.0f;
+        float midY = 205.0f;
 
-        nodes_["SPN_WOOD_BODY"] = {ImVec2(col1, 50), cDarkRed, "Wood Spawner"};
-        nodes_["SPN_WOOD_NECK"] = {ImVec2(col1, 180), cDarkRed, "Wood Spawner"};
-        nodes_["SPN_WOOD_HEAD"] = {ImVec2(col1, 310), cDarkRed, "Wood Spawner"};
+        nodes_["SPN_WOOD_BODY"] = {ImVec2(col1, 10), cDarkRed, "Wood Spawner"};
+        nodes_["SPN_WOOD_NECK"] = {ImVec2(col1, 140), cDarkRed, "Wood Spawner"};
+        nodes_["SPN_WOOD_HEAD"] = {ImVec2(col1, 270), cDarkRed, "Wood Spawner"};
         
-        nodes_["MCH_BODY_CUT"]  = {ImVec2(col2, 50), cOrange, "Body Cutter"};
-        nodes_["MCH_NECK_CUT"]  = {ImVec2(col2, 180), cOrange, "Neck Cutter"};
-        nodes_["MCH_HEAD_CUT"]  = {ImVec2(col2, 310), cOrange, "Head Cutter"};
+        nodes_["MCH_BODY_CUT"]  = {ImVec2(col2, 10), cOrange, "Body Cutter"};
+        nodes_["MCH_NECK_CUT"]  = {ImVec2(col2, 140), cOrange, "Neck Cutter"};
+        nodes_["MCH_HEAD_CUT"]  = {ImVec2(col2, 270), cOrange, "Head Cutter"};
         
-        nodes_["MCH_PAINT"]     = {ImVec2(col3, 50), cYellow, "Painter"};
+        nodes_["MCH_PAINT"]     = {ImVec2(col3, 10), cYellow, "Painter"};
         nodes_["MCH_BODY_ASM"]  = {ImVec2(col3, midY), cGreen, "Body Assembler"};
-        nodes_["SPN_PICKUP"]    = {ImVec2(col3, 380), cGrey, "Pickup Spawner"};
-        nodes_["SPN_BRIDGE"]    = {ImVec2(col3, 510), cGrey, "Bridge Spawner"};
+        nodes_["SPN_PICKUP"]    = {ImVec2(col3, 340), cGrey, "Pickup Spawner"};
+        nodes_["SPN_BRIDGE"]    = {ImVec2(col3, 470), cGrey, "Bridge Spawner"};
         
         nodes_["MCH_PART_ASM"]  = {ImVec2(col4, midY), cGreen, "Part Assembler"};
-        nodes_["MCH_ELEC"]      = {ImVec2(col4, 445), cPurple, "Elec Part Collector"};
+        nodes_["MCH_ELEC"]      = {ImVec2(col4, 405), cPurple, "Elec Part Collector"};
         
         nodes_["MCH_PACK"]      = {ImVec2(col5, midY), cRed, "Packager"};
 
@@ -155,7 +155,8 @@ private:
     }
 
     ImVec2 getAnchorOffset(Anchor anchor) {
-        float w = 120.0f; float h = 125.0f;
+        float w = 120.0f; 
+        float h = 115.0f; 
         switch(anchor) {
             case Anchor::Left:   return ImVec2(0, h / 2.0f);
             case Anchor::Right:  return ImVec2(w, h / 2.0f);
@@ -196,8 +197,7 @@ private:
         ImGui::PushStyleColor(ImGuiCol_ChildBg, bgColor);
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f); 
         
-        // 높이를 125로 늘려서 이미지 공간을 확보합니다
-        ImGui::BeginChild(mSnap.id.c_str(), ImVec2(120, 125), true, ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild(mSnap.id.c_str(), ImVec2(120, 115), true, ImGuiWindowFlags_NoScrollbar);        
         
         bool isSelected = (g_selectedMachineId == mSnap.id);
         if (ImGui::Selectable(info.displayName.c_str(), isSelected, 0, ImVec2(110, 15))) {
@@ -206,21 +206,7 @@ private:
 
         ImGui::Separator();
         
-        // if (machineTextures_.find(info.displayName) != machineTextures_.end() && machineTextures_[info.displayName] != 0) {
-        //     GLuint tex = machineTextures_[info.displayName];
-    
-        //     // 이 정보는 이미 TextureLoader에서 로드할 때 얻어둔 것이라면 좋겠지만, 
-        //     // 없다면 일단 80:60 대신 가로 80에 맞춘 세로 비율을 적용해봅니다.
-        //     float targetWidth = 80.0f;
-        //     float targetHeight = 80.0f * (280.0f / 239.0f); // 239x280 비율 적용 (약 93.7f)
-            
-        //     ImGui::SetCursorPosX(20.0f); 
-        //     ImGui::Image((void*)(intptr_t)tex, ImVec2(targetWidth, targetHeight));
-        // } else {
-        //     ImGui::Dummy(ImVec2(80, 60)); // 이미지 로드 실패 시 빈칸 유지
-        // }
         if (machineTextures_.find(info.displayName) != machineTextures_.end() && machineTextures_[info.displayName] != 0) {
-            // 80x60 -> 64x48 (0.8배)
             float newWidth = 64.0f;
             float newHeight = 48.0f;
             
@@ -281,74 +267,59 @@ private:
             p2_ext.y += ny * 22.0f;
         }
 
+        // 아이템 개수 파악 및 병목 현상 감지
+        int length = (cSnap != nullptr && cSnap->length > 0) ? cSnap->length : 5;
+        int currentItems = 0;
+        if (cSnap != nullptr) {
+            for (int i = 0; i < length; ++i) {
+                if (i < cSnap->slots.size() && cSnap->slots[i].has_value()) {
+                    currentItems++;
+                }
+            }
+        }
+        bool isBottleneck = (currentItems == length && length > 0);
+
+        // 1. 벨트 선 색상
         drawList->AddLine(p1_ext, p2_ext, IM_COL32(160, 160, 160, 255), 26.0f); 
         drawList->AddLine(p1_ext, p2_ext, IM_COL32(110, 110, 110, 255), 20.0f); 
 
-        int length = (cSnap != nullptr && cSnap->length > 0) ? cSnap->length : 5;
-        int currentItems = 0;
-
+        // ─── 아이템 그리기 ───
         for (int i = 0; i < length; ++i) {
             float t = (i + 0.5f) / length; 
             ImVec2 slotPos = ImVec2(p1_orig.x + dx * t, p1_orig.y + dy * t);
 
             bool hasItem = (cSnap != nullptr && i < cSnap->slots.size() && cSnap->slots[i].has_value());
             if (hasItem) {
-                currentItems++;
-                
                 std::string imageId;
-                float imgWidth = 24.0f;
-                float imgHeight = 24.0f;
-                float angleOffset = 0.0f; 
+                float imgWidth = 18.0f, imgHeight = 18.0f, angleOffset = 0.0f; 
 
                 switch (cSnap->slots[i]->type) {
-                    case ProductType::RawWood:
-                        imageId = "WOOD_BODY"; break;
-                    case ProductType::HeadPart:
-                        imageId = "HEAD_RAW"; imgWidth = 18.0f; imgHeight = 20.0f; angleOffset = 3.141592f / 2.0f; break;
-                    case ProductType::NeckPart:
-                        imageId = "NECK_RAW"; imgWidth = 10.0f; imgHeight = 30.0f; angleOffset = 3.141592f / 2.0f; break;
-                    case ProductType::BodyPart:
-                        imageId = cSnap->slots[i]->isPainted ? "BODY_PAINTED" : "BODY_RAW"; 
-                        imgWidth = 18.0f; imgHeight = 22.0f; angleOffset = 3.141592f / 2.0f; break;
-                    case ProductType::Bridge:
-                        imageId = "BRIDGE"; imgWidth = 16.0f; imgHeight = 16.0f; break;
-                    case ProductType::Pickup:
-                        imageId = "PICKUP"; imgWidth = 16.0f; imgHeight = 16.0f; break;
-                    case ProductType::ElecPartSet:
-                        imageId = "ELEC"; imgWidth = 16.0f; imgHeight = 16.0f; break;
-                    case ProductType::AssembledBody:
-                        imageId = "ASSEMBLY_BODY"; imgWidth = 18.0f; imgHeight = 40.0f; angleOffset = 3.141592f / 2.0f; break;
-                    case ProductType::FinishedGuitar:
-                        imageId = "GUITAR"; imgWidth = 18.0f; imgHeight = 40.0f; angleOffset = 3.141592f / 2.0f; break;
-                    default:
-                        imageId = "UNKNOWN"; break;
+                    case ProductType::RawWood: imageId = "WOOD_BODY"; break;
+                    case ProductType::HeadPart: imageId = "HEAD_RAW"; imgWidth = 18.0f; imgHeight = 20.0f; angleOffset = 3.141592f / 2.0f; break;
+                    case ProductType::NeckPart: imageId = "NECK_RAW"; imgWidth = 10.0f; imgHeight = 30.0f; angleOffset = 3.141592f / 2.0f; break;
+                    case ProductType::BodyPart: imageId = cSnap->slots[i]->isPainted ? "BODY_PAINTED" : "BODY_RAW"; imgWidth = 18.0f; imgHeight = 22.0f; angleOffset = 3.141592f / 2.0f; break;
+                    case ProductType::Bridge: imageId = "BRIDGE"; imgWidth = 16.0f; imgHeight = 16.0f; break;
+                    case ProductType::Pickup: imageId = "PICKUP"; imgWidth = 16.0f; imgHeight = 16.0f; break;
+                    case ProductType::ElecPartSet: imageId = "ELEC"; imgWidth = 16.0f; imgHeight = 16.0f; break;
+                    case ProductType::AssembledBody: imageId = "ASSEMBLY_BODY"; imgWidth = 18.0f; imgHeight = 40.0f; angleOffset = 3.141592f / 2.0f; break;
+                    case ProductType::FinishedGuitar: imageId = "GUITAR"; imgWidth = 18.0f; imgHeight = 40.0f; angleOffset = 3.141592f / 2.0f; break;
+                    default: imageId = "UNKNOWN"; break;
                 }
 
                 auto it = productImages.find(imageId);
-                
                 if (it != productImages.end() && it->second.textureID != 0) {
                     const ProductImage& img = it->second;
-                    
                     float convAngle = std::atan2(dy, dx); 
                     float totalAngle = convAngle + angleOffset;
+                    float cos_a = std::cos(totalAngle), sin_a = std::sin(totalAngle);
+                    float hw = imgWidth / 2.0f, hh = imgHeight / 2.0f;
 
-                    float cos_a = std::cos(totalAngle);
-                    float sin_a = std::sin(totalAngle);
-
-                    float hw = imgWidth / 2.0f;
-                    float hh = imgHeight / 2.0f;
-
-                    ImVec2 corners[4] = {
-                        ImVec2(-hw, -hh), ImVec2( hw, -hh),
-                        ImVec2( hw,  hh), ImVec2(-hw,  hh)
-                    };
-
+                    ImVec2 corners[4] = { ImVec2(-hw, -hh), ImVec2( hw, -hh), ImVec2( hw,  hh), ImVec2(-hw,  hh) };
                     ImVec2 p[4];
                     for (int k = 0; k < 4; ++k) {
                         p[k].x = slotPos.x + (corners[k].x * cos_a - corners[k].y * sin_a);
                         p[k].y = slotPos.y + (corners[k].x * sin_a + corners[k].y * cos_a);
                     }
-
                     drawList->AddImageQuad((void*)(intptr_t)img.textureID, p[0], p[1], p[2], p[3]);
                 } else {
                     drawList->AddRectFilled(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(180, 100, 50, 255), 2.0f);
@@ -357,61 +328,41 @@ private:
             } else {
                 drawList->AddCircleFilled(slotPos, 2.0f, IM_COL32(140, 140, 140, 255));
             }
-        } // for 루프 끝
+        }
 
-        // ─── 텍스트(라벨) ───
+        // ─── 2. 텍스트 라벨 ───
         char label[16];
         snprintf(label, sizeof(label), "%d/%d", currentItems, length);
         
         float convAngle = std::atan2(dy, dx);
-        float textAngle = convAngle;
-        
-        // 세로 방향 컨베이어인 경우 텍스트 각도를 0(가로)으로 고정
-        if (std::abs(dx) < 1.0f) {
-            textAngle = 0.0f;
-        } else if (std::cos(convAngle) < 0) {
-            // 왼쪽으로 가는 경우 글씨가 뒤집히지 않게 180도 회전
-            textAngle += 3.141592f; 
-        }
-
+        float textAngle = (std::abs(dx) < 1.0f) ? 0.0f : ((std::cos(convAngle) < 0) ? convAngle + 3.141592f : convAngle);
         ImVec2 textSize = ImGui::CalcTextSize(label);
         
-        // 텍스트를 컨베이어 위쪽으로
-        float nx = -dy / len; 
-        float ny = dx / len;
+        float nx = -dy / len, ny = dx / len;
+        if (std::abs(dx) < 1.0f) { nx = 1.0f; ny = 0.0f; } else if (ny > 0) { nx = -nx; ny = -ny; }
         
-        if (std::abs(dx) < 1.0f) {
-            nx = 1.0f;
-            ny = 0.0f;
-        } else if (ny > 0) {
-            nx = -nx;
-            ny = -ny;
-        }
-        
-        // 거리를 28.0f로 설정하여 벨트 위에 예쁘게 얹히도록 계산
         ImVec2 mid = ImVec2(p1_orig.x + dx * 0.5f + nx * 28.0f, p1_orig.y + dy * 0.5f + ny * 28.0f);
 
-        // ── 버텍스 회전 마법 시작 ──
-        int vtx_start = drawList->VtxBuffer.Size;
+        ImU32 labelBgColor = isBottleneck ? IM_COL32(255, 200, 200, 230) : IM_COL32(255, 255, 255, 230);
+        ImU32 labelBorderColor = isBottleneck ? IM_COL32(200, 50, 50, 255) : IM_COL32(100, 100, 100, 255);
+        ImU32 labelTextColor = isBottleneck ? IM_COL32(200, 0, 0, 255) : IM_COL32(0, 0, 0, 255);
 
+        int vtx_start = drawList->VtxBuffer.Size;
         ImVec2 pMin = ImVec2(mid.x - textSize.x / 2 - 4, mid.y - textSize.y / 2 - 2);
         ImVec2 pMax = ImVec2(mid.x + textSize.x / 2 + 4, mid.y + textSize.y / 2 + 2);
-        drawList->AddRectFilled(pMin, pMax, IM_COL32(255, 255, 255, 230), 4.0f);
-        drawList->AddRect(pMin, pMax, IM_COL32(100, 100, 100, 255), 4.0f);
-        drawList->AddText(ImVec2(mid.x - textSize.x / 2, mid.y - textSize.y / 2), IM_COL32(0, 0, 0, 255), label);
+        
+        drawList->AddRectFilled(pMin, pMax, labelBgColor, 4.0f);
+        drawList->AddRect(pMin, pMax, labelBorderColor, 4.0f);
+        drawList->AddText(ImVec2(mid.x - textSize.x / 2, mid.y - textSize.y / 2), labelTextColor, label);
 
         int vtx_end = drawList->VtxBuffer.Size;
-
-        float cos_a = std::cos(textAngle);
-        float sin_a = std::sin(textAngle);
+        float cos_a = std::cos(textAngle), sin_a = std::sin(textAngle);
         for (int i = vtx_start; i < vtx_end; i++) {
             ImVec2& p = drawList->VtxBuffer[i].pos;
-            p.x -= mid.x;
-            p.y -= mid.y; 
+            p.x -= mid.x; p.y -= mid.y; 
             float rotated_x = (p.x * cos_a) - (p.y * sin_a);
             float rotated_y = (p.x * sin_a) + (p.y * cos_a); 
-            p.x = rotated_x + mid.x;
-            p.y = rotated_y + mid.y; 
+            p.x = rotated_x + mid.x; p.y = rotated_y + mid.y; 
         }
     } // DrawConveyor 함수 끝
 
@@ -420,8 +371,8 @@ private:
             return;
         }
 
-        ImGui::SetCursorPos(ImVec2(20, 460));
-        ImGui::BeginChild("TechManager", ImVec2(200, 240), true);
+        ImGui::SetCursorPos(ImVec2(20, 420));
+        ImGui::BeginChild("TechManager", ImVec2(200, 200), true);
         ImGui::Text("Technician Manager");
         ImGui::Separator();
         
@@ -431,7 +382,6 @@ private:
         for (const auto& tech : snap.technicians) {
             bool isWorking = tech.targetMachineId.has_value();
 
-            // 🌟 핵심: 일하지 않고 대기 중일 때만 얼굴(이미지)을 그립니다!
             if (!isWorking && hasTechImage) {
                 ImGui::Image((void*)(intptr_t)it->second.textureID, ImVec2(50, 50));
             } else if (!isWorking) {
@@ -445,7 +395,6 @@ private:
 
             // 상태 표시 텍스트
             if (isWorking) {
-                // 일하러 갔을 때는 글씨를 회색으로 흐리게!
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
                 ImGui::Text("%s (Working)", displayName.c_str());
                 ImGui::Text("  -> repairing:");
@@ -475,7 +424,6 @@ private:
         float height = 45.0f; 
 
         for (const auto& tech : snap.technicians) {
-            // 🌟 수리 중(출동 상태)일 때만 기계 옆에 이미지를 그립니다!
             if (tech.targetMachineId.has_value()) {
                 std::string targetId = tech.targetMachineId.value();
                 auto nodeIt = nodes_.find(targetId);
@@ -483,31 +431,26 @@ private:
                 if (nodeIt != nodes_.end()) {
                     ImVec2 mPos = nodeIt->second.pos;
 
-                    // 1. 통통 튀는 애니메이션 마법
                     float time = ImGui::GetTime();
                     float bounce = std::sin(time * 8.0f) * 5.0f; 
 
-                    // 2. 고장 난 기계의 우측 상단으로 텔레포트 좌표 설정
-                    float offsetX = 90.0f;
-                    float offsetY = -20.0f;
+                    float offsetX = 125.0f; 
+                    float offsetY = 15.0f;
 
                     ImVec2 pMin = ImVec2(
                         mPos.x + windowPos.x - scrollX + offsetX,
-                        mPos.y + windowPos.y - scrollY + offsetY + bounce // 바운스!
+                        mPos.y + windowPos.y - scrollY + offsetY + bounce
                     );
                     ImVec2 pMax = ImVec2(pMin.x + width, pMin.y + height);
 
-                    // 3. 그림자 (지난번 에러 고친 안전한 ImVec2 버전)
                     ImVec2 shadowCenter = ImVec2(
                         mPos.x + windowPos.x - scrollX + offsetX + width / 2.0f,
                         mPos.y + windowPos.y - scrollY + offsetY + height + 5.0f
                     );
                     drawList->AddEllipseFilled(shadowCenter, ImVec2(15.0f, 5.0f), IM_COL32(0, 0, 0, 80));
 
-                    // 4. 수리공 이미지 그리기
                     drawList->AddImage((void*)(intptr_t)texID, pMin, pMax);
 
-                    // 5. 머리 위 이름표
                     std::string displayName = tech.id;
                     if (tech.id == "TECH_1") displayName = "jincheol";
                     else if (tech.id == "TECH_2") displayName = "jaeyong";
@@ -548,8 +491,8 @@ public:
     void render(const FactorySnap& snap, MachineCmd& cmd) override {
         LoadProductImages();
         LoadMachineTextures();
-        ImGui::BeginChild("Factory Floor", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
-
+        ImGui::BeginChild("Factory Floor", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar);
+        
         for (const auto& line : lines_) {
             const ConveyorSnap* foundConv = nullptr;
             for (const auto& c : snap.conveyors) {

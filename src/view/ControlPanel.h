@@ -9,8 +9,6 @@ private:
 
 public:
     void render(const FactorySnap& snap, MachineCmd& cmd) override {
-        ImGui::BeginChild("Simulation Control", ImVec2(0, 200), true);
-
         ImGui::Text("Guitar Factory Control");
         ImGui::Separator();
         ImGui::Spacing();
@@ -32,7 +30,6 @@ public:
             cmd.speedMultiplier = simSpeed;
         }
 
-        ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
@@ -40,20 +37,19 @@ public:
         ImGui::Text("Load Scenario");
         const char* scenarios[] = { "Normal", "Bottleneck", "Breakdowns", "Overflow", "SmartFactory" }; 
         
-        // 드롭다운 메뉴
+        ImGui::SetNextItemWidth(120.0f); 
         ImGui::Combo("##ScenarioCombo", &selectedScenario, scenarios, IM_ARRAYSIZE(scenarios));
         ImGui::SameLine();
         
-        // 로드 버튼
         if (ImGui::Button("Load & Reset")) {
             cmd.action = CmdAction::SetScenario;
             cmd.scenario = static_cast<ScenarioType>(selectedScenario);
         }
 
-        ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
+        // ── 4. 타임머신 ──
         ImGui::Text("Time Travel (Current Tick: %d)", snap.tick);
         if (ImGui::Button("Rewind 100 Ticks")) {
             cmd.action = CmdAction::Rewind;
@@ -62,7 +58,5 @@ public:
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Go back in time to fix mistakes!");
         }
-
-        ImGui::EndChild();
     }
 };

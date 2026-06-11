@@ -24,11 +24,6 @@
 #include "controller/Controller.h"
 #include "view/View.h"
 
-// 웹 빌드 위한 Emscripten 헤더 추가
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 // 초기화를 돕기 위한 임시 Lookup 클래스
 class TempLookup : public IMachineLookup {
 public:
@@ -92,10 +87,6 @@ void MainLoopStep(void* arg) {
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(app->window);
-
-#ifdef __EMSCRIPTEN__
-    if (!app->running) emscripten_cancel_main_loop();
-#endif
 }
 
 int main(int, char**)
@@ -106,16 +97,10 @@ int main(int, char**)
         return -1;
     }
 
-    // 데스크톱과 웹 브라우저의 그래픽 세팅 분리
-#ifdef __EMSCRIPTEN__
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#else
+    // 데스크톱 그래픽 세팅
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#endif
 
     SDL_Window* window = SDL_CreateWindow(
         "Electric Guitar Factory",
@@ -132,28 +117,18 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    // 웹의 경우 WebGL 전용 셰이더(#version 300 es) 사용
-#ifdef __EMSCRIPTEN__
-    ImGui_ImplOpenGL3_Init("#version 300 es");
-#else
+    
     ImGui_ImplOpenGL3_Init("#version 130");
-#endif
 
     // Context 하나만 동적 할당하여 생성
     AppContext* app = new AppContext();
     app->window = window;
     app->gl_context = gl_context;
 
-    // 데스크톱 / 웹 실행 방식 분기
-#ifdef __EMSCRIPTEN__
-    // 웹 브라우저용 Emscripten 메인 루프 등록
-    emscripten_set_main_loop_arg(MainLoopStep, app, 0, true);
-#else
-    // 기존 데스크톱용 무한 루프
+    // 데스크톱용 무한 루프
     while (app->running) {
         MainLoopStep(app);
     }
-#endif
 
     // ── Cleanup ───────────────────────────────────────────────
     ImGui_ImplOpenGL3_Shutdown();
