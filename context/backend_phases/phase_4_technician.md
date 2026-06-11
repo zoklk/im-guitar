@@ -25,7 +25,7 @@ static <Concrete>& instance()
 ```
 
 자식:
-- **TechnicianIdleState**: update no-op. `targetMachine_ == nullptr` 보장. TechnicianManager가 `assign()` 호출 시 외부에서 전이
+- **TechnicianIdleState**: update no-op. `targetMachine_ == nullptr` 보장. RepairDispatcher가 `assign()` 호출 시 외부에서 전이
 - **TechnicianWorkingState**:
   - `onEnter`: `repairProgress_ = 0`
   - `update`: `repairProgress_++`. repairTime 도달 시 → `targetMachine_->repair()` → `targetMachine_ = nullptr` → `TechnicianIdleState` 전이
@@ -54,7 +54,7 @@ isIdle(): currentState_ == &TechnicianIdleState::instance()
 restoreFromSnap(const TechnicianSnap& snap, Machine* target)
 ```
 
-TechnicianManager가 `assign()` 호출 → TechnicianWorkingState 진입 → repairTime틱 후 자동 복귀.
+RepairDispatcher가 `assign()` 호출 → TechnicianWorkingState 진입 → repairTime틱 후 자동 복귀.
 
 **`targetMachine_` 불변 유지 정책**: assert 없이 진입점 제한으로 보장
 - 셋: `assign(m, tick)` 한 곳에서만 (nullptr → m)

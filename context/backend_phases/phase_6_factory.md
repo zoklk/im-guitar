@@ -23,7 +23,7 @@ conveyors_:    vector<unique_ptr<Conveyor>>
 technicians_:  vector<unique_ptr<Technician>>
 
 // 협력자 (참조 주입)
-broker_, eventLog_, statistics_, technicianManager_
+broker_, eventLog_, statistics_, repairDispatcher_
 
 // 시뮬 상태
 tick_: int
@@ -57,19 +57,19 @@ restore(FactorySnap): 메멘토 복원
 
 **조회는 벡터 + 선형검색** — 머신 13개 / 컨베이어 12개 수준이라 unordered_map 도입 가치 없음.
 
-**Factory가 `IMachineLookup`을 구현** — `findMachine`은 인터페이스 메서드. `TechnicianManager`가 setter 주입 (`techMgr.setLookup(factory)`)으로 받음. 생성 순서: `TechnicianManager(broker, nullLookup) → Factory(...) → techMgr.setLookup(factory)`.
+**Factory가 `IMachineLookup`을 구현** — `findMachine`은 인터페이스 메서드. `RepairDispatcher`가 setter 주입 (`repairDispatcher.setLookup(factory)`)으로 받음. 생성 순서: `RepairDispatcher(broker, nullLookup) → Factory(...) → repairDispatcher.setLookup(factory)`.
 
 ### `applyConfig` 와이어링 순서
 
 1. `reset()` 호출 (broker 토픽 구독 정리, 컨테이너 / 카운터 / RNG 시드 재발급 등)
 2. `createConveyor` 일괄 호출 (downstream 포인터는 4단계에서 설정)
 3. `createMachine` 일괄 호출 + outputConveyor 와이어링 (outputConveyor의 mode를 머신의 `outputOverflowMode_`로 전달)
-4. `createTechnician` 일괄 + `technicianManager.registerTechnician`
+4. `createTechnician` 일괄 + `repairDispatcher.registerTechnician`
 5. 각 conveyor에 대해 `c.setDownstream(findMachine(c.downstreamId))`
 6. **Priority map 계산 + 주입** (모든 시나리오 공통):
    - Sink 정의: `outputConveyorId == ""` 인 머신 (현 5종 시나리오는 모두 Packager 단일)
    - Machine → outputConveyor → downstreamMachine 체인의 역방향 adjacency 구성 후, 모든 sink를 시드로 단일 BFS → `unordered_map<string,int>` (machineId → 거리). 도달 불가 머신은 99
-   - `technicianManager.setPriorityMap(map)` 호출
+   - `repairDispatcher.setPriorityMap(map)` 호출
    - 인스턴스 단위 priority. phase 5의 priority 표는 표준 13-머신 토폴로지 결과 예시일 뿐 — source of truth는 본 단계의 계산 결과
 7. **Backpressure 토픽 구독 등록** (SmartFactory 한정): 각 Machine M에 대해 `M.outputConveyor.mode == Backpressure`면 `broker.subscribe(EventType::Backpressure, M.outputConveyor.id, M)`
 8. **Fault cascade 토픽 구독 등록** (SmartFactory 한정):
@@ -86,7 +86,7 @@ restore(FactorySnap): 메멘토 복원
 2. machines (Spawner 포함) update — base 포인터 루프
 3. conveyors update
 4. technicians update
-5. technicianManager update (Fault 큐 ↔ idle Technician 매칭)
+5. repairDispatcher update (Fault 큐 ↔ idle Technician 매칭)
 
 `broker.flush()` 호출은 Runner가 담당.
 
@@ -132,7 +132,7 @@ tryAdvance(realDt):
   - **Statistics**: `setSnapshot(finished, wip, breakdowns, lost)` 일괄 set
   - **EventLog**: `setLogs(snap.logs)` (200 cap 유지)
   - **EventBroker**: `restoreQueue(snap.pendingEvents)` (queue 일괄 재구성, 구독자는 유지)
-  - **TechnicianManager**: `restoreQueue(entries, maxSeq+1)` (pendingRepairs → QueueEntry)
+  - **RepairDispatcher**: `restoreQueue(entries, maxSeq+1)` (pendingRepairs → QueueEntry)
   - **RNG**: stringstream으로 역직렬화
   - **ProductIdGen**: `setCounter(snap.productIdCounter)`
 - snap에 없는 객체는 무시 (시나리오 변경된 경우는 reset+applyConfig가 별도)
@@ -165,14 +165,14 @@ dispatch(MachineCmd cmd):
 ### `forceBreak` / `instantRepair` 동작
 
 - **forceBreak**: `findMachine(id)` → `m.forceBreak()` 호출 → `health_ = 0` 설정. 다음 update 틱에서 IdleState/ProcessingState가 health 체크 후 자연스럽게 BrokenState 전이. 즉시 전이는 IdleState에서도 동작해야 하므로 IdleState.update에서도 health == 0 체크 포함 (구현됨)
-- **instantRepair**: `findMachine(id)` → `m.repair(tick_)` 직접 호출. Technician/TechnicianManager 우회. 큐에 이미 있다면 매니저가 다음 update에서 idle 상태 발견 후 큐에서 자동 제외 (stale head pop)
+- **instantRepair**: `findMachine(id)` → `m.repair(tick_)` 직접 호출. Technician/RepairDispatcher 우회. 큐에 이미 있다면 dispatcher가 다음 update에서 idle 상태 발견 후 큐에서 자동 제외 (stale head pop)
 
 > **주의**: 현재 `MachineProcessingState::update`의 health<=0 체크는 `breakdownProb > 0` 가드 안에 있어, bp=0인 머신이 Processing 중에 forceBreak 받으면 다음 cycle 종료 후에 Broken 전이됨. bp>0이거나 Idle 중이면 즉시 전이. 동작상 큰 문제는 없으나 후속 phase에서 가드 위치 보정 가능.
 
 ### 순환 의존성 해결
 
-- `TechnicianManager`는 `IMachineLookup&` 참조를 (내부적으로는 pointer로) 보유. Factory가 `IMachineLookup`을 구현
-- 생성 순서: `TechnicianManager(broker, nullLookup) → Factory(broker, log, stats, mgr) → mgr.setLookup(factory)`
+- `RepairDispatcher`는 `IMachineLookup&` 참조를 (내부적으로는 pointer로) 보유. Factory가 `IMachineLookup`을 구현
+- 생성 순서: `RepairDispatcher(broker, nullLookup) → Factory(broker, log, stats, dispatcher) → dispatcher.setLookup(factory)`
 - main / 테스트 / harness 모두 동일한 패턴 (`NullLookup` placeholder + setter 주입)
 
 ## 의존성

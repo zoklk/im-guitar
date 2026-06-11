@@ -12,7 +12,7 @@
 #include "model/machine/Machine.h"
 #include "model/machine/MachineStates.h"
 #include "model/scenario/ScenarioConfig.h"
-#include "model/technician_manager/TechnicianManager.h"
+#include "model/repair_dispatcher/RepairDispatcher.h"
 #include "model/stats/Statistics.h"
 
 #include <gtest/gtest.h>
@@ -51,10 +51,10 @@ struct Harness {
     EventLog          eventLog{broker};
     Statistics        stats{broker};
     NullLookup        nullLookup;
-    TechnicianManager mgr{broker, nullLookup};
-    Factory           factory{broker, eventLog, stats, mgr};
+    RepairDispatcher dispatcher{broker, nullLookup};
+    Factory           factory{broker, eventLog, stats, dispatcher};
 
-    Harness() { mgr.setLookup(factory); }
+    Harness() { dispatcher.setLookup(factory); }
 };
 
 }  // namespace
@@ -150,7 +150,7 @@ TEST(PhaseFactory, PriorityMapBfsAssignsPackagerZero) {
     h.factory.applyConfig(makeTinyConfig());
 
     // BFS: PACK=0, CUT=1, SPN=2
-    EXPECT_EQ(h.mgr.priorityOf("PACK"), 0);
-    EXPECT_EQ(h.mgr.priorityOf("CUT"),  1);
-    EXPECT_EQ(h.mgr.priorityOf("SPN"),  2);
+    EXPECT_EQ(h.dispatcher.priorityOf("PACK"), 0);
+    EXPECT_EQ(h.dispatcher.priorityOf("CUT"),  1);
+    EXPECT_EQ(h.dispatcher.priorityOf("SPN"),  2);
 }

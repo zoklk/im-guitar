@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.15)
 project(im_guitar CXX)
 
+# Emscripten (WebAssembly) 빌드인 경우의 추가 설정
+if(EMSCRIPTEN)
+    # 컴파일 시 SDL2 사용
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -s ALLOW_MEMORY_GROWTH=1")
+    
+    # 링크 시에도 SDL2 사용 + 이미지 폴더 패키징
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_SDL=2 --preload-file ${CMAKE_SOURCE_DIR}/assets@/assets")
+    
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -61,7 +72,16 @@ target_include_directories(imgui PUBLIC
 # ---------------------------------------------------------------------------
 # SDL2 / OpenGL
 # ---------------------------------------------------------------------------
-find_package(SDL2 REQUIRED)
+if(EMSCRIPTEN)
+    # 웹 환경에서는 내장된 SDL2를 사용하므로 find_package 없이 인터페이스 라이브러리만 만들어서 링크
+    set(SDL2_LIBRARIES "")
+    set(SDL2_INCLUDE_DIRS "")
+    add_library(SDL2::SDL2 INTERFACE IMPORTED)
+    add_library(SDL2::SDL2main INTERFACE IMPORTED)
+else()
+    # 데스크톱 빌드인 경우 시스템에 설치된 SDL2를 찾아 링크
+    find_package(SDL2 REQUIRED)
+endif()
 find_package(OpenGL REQUIRED)
 
 if(TARGET SDL2::SDL2)
@@ -102,7 +122,7 @@ if(MODEL_SOURCES)
         "${CMAKE_SOURCE_DIR}/src/model/technician"
         "${CMAKE_SOURCE_DIR}/src/model/memento"
         "${CMAKE_SOURCE_DIR}/src/model/scenario"
-        "${CMAKE_SOURCE_DIR}/src/model/technician_manager"
+        "${CMAKE_SOURCE_DIR}/src/model/repair_dispatcher"
         "${CMAKE_SOURCE_DIR}/src/model/factory"
     )
     target_link_libraries(model_lib PUBLIC nlohmann_json::nlohmann_json)
