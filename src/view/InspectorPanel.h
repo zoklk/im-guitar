@@ -193,6 +193,9 @@ public:
         ImGui::SameLine(100);
         ImGui::Text("%d ticks", selectedMachine->processingTime);
 
+        // 5. Breakdown Probability (고장 확률)
+        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Breakdown Risk: %.1f%%", selectedMachine->breakdownProb * 100.0f);
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();

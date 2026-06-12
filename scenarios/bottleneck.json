@@ -9,7 +9,7 @@
     { "type": "HeadCutter",        "id": "MCH_HEAD_CUT",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_HEAD" },
     { "type": "NeckCutter",        "id": "MCH_NECK_CUT",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_NECK" },
     { "type": "BodyCutter",        "id": "MCH_BODY_CUT",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_RAW" },
-    { "type": "Painter",           "id": "MCH_PAINT",      "processingTime": 12, "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_PAINTED" },
+    { "type": "Painter",           "id": "MCH_PAINT",      "processingTime": 6, "breakdownProb": 0.02, "requiredCount": 1, "maxHealth": 10, "outputConveyorId": "CONV_BODY_PAINTED" },
     { "type": "ElecPartCollector", "id": "MCH_ELEC",       "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_ELEC" },
     { "type": "BodyAssembler",     "id": "MCH_BODY_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 3, "maxHealth": 10, "outputConveyorId": "CONV_ASMBODY" },
     { "type": "PartAssembler",     "id": "MCH_PART_ASM",   "processingTime": 6,  "breakdownProb": 0.02, "requiredCount": 2, "maxHealth": 10, "outputConveyorId": "CONV_GUITAR" },
