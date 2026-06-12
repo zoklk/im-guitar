@@ -35,7 +35,7 @@ public:
 
         // ── 3. 시나리오 로드 (초기화) ──
         ImGui::Text("Load Scenario");
-        const char* scenarios[] = { "Normal", "Bottleneck", "Breakdowns", "Overflow", "SmartFactory" }; 
+        const char* scenarios[] = { "Normal", "Breakdowns", "Bottleneck", "Overflow", "SmartFactory" };
         
         ImGui::SetNextItemWidth(120.0f); 
         ImGui::Combo("##ScenarioCombo", &selectedScenario, scenarios, IM_ARRAYSIZE(scenarios));
