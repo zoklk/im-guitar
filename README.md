@@ -30,7 +30,7 @@ A tick-based factory pipeline simulator that produces electric guitars from raw 
 The project follows an MVC structure. The model holds the simulation domain, the view renders ImGui panels, and the controller bridges user input to the model.
 
 - Backend (model and controller): [backend-uml.svg](./diagrams/backend-uml.svg)
-- Frontend (view): [frontend-uml.png](./diagrams/frontend-uml.png)
+- Frontend (view): [frontend-uml.svg](./diagrams/frontend-uml.svg)
 
 ## Directory Structure
 
