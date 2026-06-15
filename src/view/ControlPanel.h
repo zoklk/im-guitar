@@ -6,6 +6,7 @@ class ControlPanel : public Panel {
 private:
     int selectedScenario = 0;
     int simSpeed = 1;
+    int rewindTarget = 0;   // 사용자가 입력한 되돌릴 목표 틱
 
 public:
     void render(const FactorySnap& snap, MachineCmd& cmd) override {
@@ -51,12 +52,20 @@ public:
 
         // ── 4. 타임머신 ──
         ImGui::Text("Time Travel (Current Tick: %d)", snap.tick);
-        if (ImGui::Button("Rewind 100 Ticks")) {
+
+        // 입력값을 [0, 현재 틱] 범위로 제한 (범위 밖이면 컨트롤러가 다시 클램프함)
+        if (rewindTarget > snap.tick) rewindTarget = snap.tick;
+        if (rewindTarget < 0)         rewindTarget = 0;
+
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("##RewindTick", &rewindTarget);
+        ImGui::SameLine();
+        if (ImGui::Button("Rewind")) {
             cmd.action = CmdAction::Rewind;
-            cmd.rewindTargetTick = std::max(0, snap.tick - 100);
+            cmd.rewindTargetTick = rewindTarget;
         }
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Go back in time to fix mistakes!");
+            ImGui::SetTooltip("Go back to the entered tick to fix mistakes!");
         }
     }
 };
