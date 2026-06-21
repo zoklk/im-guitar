@@ -47,7 +47,11 @@ void Controller::dispatch(const MachineCmd& cmd) {
             break;
         case CmdAction::Rewind: {
             if (!mementoStore_.empty()) {
-                FactorySnap snap = mementoStore_.rewind(cmd.rewindTargetTick);
+                // 입력 틱을 보관된 히스토리 범위로 클램프 (범위 밖이면 rewind가 throw → 앱 종료).
+                int target = cmd.rewindTargetTick;
+                if (target < mementoStore_.firstTick()) target = mementoStore_.firstTick();
+                if (target > mementoStore_.lastTick())  target = mementoStore_.lastTick();
+                FactorySnap snap = mementoStore_.rewind(target);
                 factory_.restore(snap);
             }
             break;

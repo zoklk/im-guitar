@@ -1,0 +1,712 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="3800" viewBox="0 0 3840 3800">
+  <defs>
+    <style>
+      text { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; fill: #1f2a30; }
+      .title { font-size: 46px; font-weight: 800; fill: #0f4b45; letter-spacing: 0.5px; }
+      .subtitle { font-size: 21px; fill: #5b6a6e; }
+      .package-title { font-size: 27px; font-weight: 800; fill: #224a45; }
+      .class-name { font-size: 21px; font-weight: 700; fill: #11201d; }
+      .stereo { font-size: 15px; font-style: italic; fill: #6a7a7c; }
+      .member { font-size: 16px; fill: #20302e; }
+      .small { font-size: 15px; fill: #4c5d5e; }
+      .tiny { font-size: 13px; fill: #5c6e6e; }
+      .package { fill: #ffffff; stroke: #9fb6b2; stroke-width: 2; rx: 22; }
+      .pkg-sim      { fill: #f0f8f6; }
+      .pkg-factory  { fill: #fbf3e8; }
+      .pkg-orch     { fill: #f1f2fb; }
+      .pkg-state    { fill: #fbf0f4; }
+      .pkg-observer { fill: #eef6fb; }
+      .pkg-product  { fill: #f1f8ee; }
+      .pkg-value    { fill: #f6f4ef; }
+      .box { fill: #ffffff; stroke: #38474d; stroke-width: 2; rx: 14; }
+      .head { stroke: #38474d; stroke-width: 2; rx: 14; }
+      .h-sim      { fill: #cfe9e3; }
+      .h-machine  { fill: #b9ddd4; }
+      .h-factory  { fill: #f1dcbe; }
+      .h-orch     { fill: #d7daf2; }
+      .h-state    { fill: #efd2de; }
+      .h-observer { fill: #cce2f1; }
+      .h-product  { fill: #d6eccd; }
+      .h-value    { fill: #e6e0d3; }
+      .h-iface    { fill: #e7ecee; }
+      .line { stroke: #38474d; stroke-width: 1.2; }
+      .inh { stroke: #2f6f68; stroke-width: 2.4; fill: none; }
+      .own { stroke: #b5772a; stroke-width: 2.4; fill: none; }
+      .dep { stroke: #7d7384; stroke-width: 2.2; fill: none; stroke-dasharray: 10 7; }
+      .label { font-size: 15px; font-weight: 700; fill: #2f6f68; }
+      .label-own { font-size: 15px; font-weight: 700; fill: #b5772a; }
+      .label-dep { font-size: 15px; font-weight: 700; fill: #6c6275; }
+      .note { fill: #fdf7e9; stroke: #d9c690; stroke-width: 2; rx: 12; }
+      .t-head { fill: #d9e6e3; stroke: #9fb6b2; stroke-width: 1.5; }
+      .t-row { fill: #ffffff; stroke: #d7e1de; stroke-width: 1; }
+    </style>
+    <marker id="inh" viewBox="0 0 20 16" refX="18" refY="8" markerWidth="20" markerHeight="16" orient="auto">
+      <path d="M 18 8 L 2 2 L 2 14 Z" fill="#ffffff" stroke="#2f6f68" stroke-width="2"/>
+    </marker>
+    <marker id="own" viewBox="0 0 22 16" refX="20" refY="8" markerWidth="22" markerHeight="16" orient="auto">
+      <path d="M 2 8 L 11 2 L 20 8 L 11 14 Z" fill="#b5772a" stroke="#b5772a" stroke-width="1.5"/>
+    </marker>
+    <marker id="dep" viewBox="0 0 12 10" refX="10" refY="5" markerWidth="13" markerHeight="11" orient="auto">
+      <path d="M 1 1 L 11 5 L 1 9" fill="none" stroke="#7d7384" stroke-width="2"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="3840" height="3800" fill="#e9eeef"/>
+  <rect x="0" y="0" width="3840" height="200" fill="#0f4b45"/>
+  <text x="70" y="86" class="title" fill="#eaf6f3">im-guitar &#183; Backend UML</text>
+
+  <!-- Legend -->
+  <rect x="70" y="232" width="1100" height="92" class="note"/>
+  <text x="96" y="268" class="class-name">Legend</text>
+  <line x1="240" y1="262" x2="340" y2="262" class="inh" marker-end="url(#inh)"/>
+  <text x="356" y="268" class="small">is-a / implements</text>
+  <line x1="566" y1="262" x2="666" y2="262" class="own" marker-end="url(#own)"/>
+  <text x="682" y="268" class="small">has-a (owns)</text>
+  <line x1="876" y1="262" x2="976" y2="262" class="dep" marker-end="url(#dep)"/>
+  <text x="992" y="268" class="small">uses / dependency</text>
+  <text x="240" y="306" class="tiny">Header colour of each class shows the pattern group it belongs to.</text>
+
+  <!-- ============ ORCHESTRATION ============ -->
+  <rect x="60" y="360" width="1360" height="500" class="package pkg-orch"/>
+  <text x="92" y="403" class="package-title">Controller &amp; Runtime Orchestration</text>
+
+  <g id="Controller">
+    <rect x="96" y="440" width="580" height="150" class="box"/>
+    <rect x="96" y="440" width="580" height="56" class="head h-orch"/>
+    <text x="120" y="465" class="stereo">&lt;&lt;Controller&gt;&gt;</text>
+    <text x="120" y="486" class="class-name">Controller</text>
+    <line x1="96" y1="496" x2="676" y2="496" class="line"/>
+    <text x="120" y="526" class="member">- factory_, runner_, mementoStore_, scenarioLoader_</text>
+    <text x="120" y="552" class="member">+ dispatch(cmd: MachineCmd)</text>
+    <text x="120" y="578" class="tiny">thin dispatch, no own state &#183; 10 CmdAction -&gt; domain calls</text>
+  </g>
+  <g id="SimulationRunner">
+    <rect x="96" y="610" width="580" height="222" class="box"/>
+    <rect x="96" y="610" width="580" height="56" class="head h-orch"/>
+    <text x="120" y="635" class="stereo">&lt;&lt;Clock&gt;&gt;</text>
+    <text x="120" y="656" class="class-name">SimulationRunner</text>
+    <line x1="96" y1="666" x2="676" y2="666" class="line"/>
+    <text x="120" y="696" class="member">- speedMultiplier_, accumulator_</text>
+    <text x="120" y="722" class="member">- tickIntervalSec_ = 0.6  (600ms / speed)</text>
+    <line x1="96" y1="745" x2="676" y2="745" class="line"/>
+    <text x="120" y="775" class="member">+ tryAdvance(realDt): tick + flush + push</text>
+    <text x="120" y="800" class="member">+ start, pause, reset, setSpeed(1..5)</text>
+    <text x="120" y="826" class="member">+ isRunning(), getSpeed(), getTickInterval()</text>
+  </g>
+  <g id="ScenarioLoader">
+    <rect x="700" y="440" width="350" height="150" class="box"/>
+    <rect x="700" y="440" width="350" height="56" class="head h-orch"/>
+    <text x="724" y="465" class="stereo">&lt;&lt;Loader&gt;&gt;</text>
+    <text x="724" y="486" class="class-name">ScenarioLoader</text>
+    <line x1="700" y1="496" x2="1050" y2="496" class="line"/>
+    <text x="724" y="526" class="member">- baseDir_ = "scenarios"</text>
+    <text x="724" y="552" class="member">+ load(type): ScenarioConfig</text>
+    <text x="724" y="578" class="tiny">parses scenarios/*.json</text>
+  </g>
+  <g id="MementoStore">
+    <rect x="700" y="610" width="350" height="222" class="box"/>
+    <rect x="700" y="610" width="350" height="56" class="head h-orch"/>
+    <text x="724" y="635" class="stereo">&lt;&lt;Memento&gt;&gt;</text>
+    <text x="724" y="656" class="class-name">MementoStore</text>
+    <line x1="700" y1="666" x2="1050" y2="666" class="line"/>
+    <text x="724" y="696" class="member">- history_:</text>
+    <text x="724" y="722" class="member">   deque&lt;FactorySnap&gt;</text>
+    <line x1="700" y1="745" x2="1050" y2="745" class="line"/>
+    <text x="724" y="775" class="member">+ push(snap)</text>
+    <text x="724" y="800" class="member">+ rewind(tick), clear()</text>
+    <text x="724" y="826" class="member">+ empty(), size(), firstTick(), lastTick()</text>
+  </g>
+  <g id="ScenarioConfig">
+    <rect x="1072" y="440" width="330" height="366" class="box"/>
+    <rect x="1072" y="440" width="330" height="56" class="head h-value"/>
+    <text x="1096" y="465" class="stereo">&lt;&lt;struct&gt;&gt;</text>
+    <text x="1096" y="486" class="class-name">ScenarioConfig</text>
+    <line x1="1072" y1="496" x2="1402" y2="496" class="line"/>
+    <text x="1096" y="526" class="member">+ type, name</text>
+    <text x="1096" y="552" class="member">+ machines[]: MachineDef</text>
+    <text x="1096" y="578" class="member">+ conveyors[]: ConveyorDef</text>
+    <text x="1096" y="604" class="member">+ technicians[]: TechDef</text>
+    <line x1="1072" y1="624" x2="1402" y2="624" class="line"/>
+    <text x="1096" y="652" class="small">MachineDef, ConveyorDef,</text>
+    <text x="1096" y="676" class="small">TechnicianDef hold the</text>
+    <text x="1096" y="700" class="small">per-object build params.</text>
+    <text x="1096" y="740" class="tiny">Loader produces it;</text>
+    <text x="1096" y="762" class="tiny">Factory.applyConfig</text>
+    <text x="1096" y="784" class="tiny">consumes it.</text>
+  </g>
+
+  <!-- ============ FACTORY ============ -->
+  <rect x="1500" y="360" width="880" height="490" class="package pkg-factory"/>
+  <text x="1532" y="403" class="package-title">Factory Pattern &#183; Ownership Hub</text>
+
+  <g id="Factory">
+    <rect x="1535" y="440" width="810" height="408" class="box"/>
+    <rect x="1535" y="440" width="810" height="66" class="head h-factory"/>
+    <text x="1559" y="465" class="stereo">&lt;&lt;Factory, Owner&gt;&gt;  : IMachineLookup</text>
+    <text x="1559" y="492" class="class-name">Factory</text>
+    <line x1="1535" y1="506" x2="2345" y2="506" class="line"/>
+    <text x="1559" y="534" class="member">- machines_: vector&lt;unique_ptr&lt;Machine&gt;&gt;</text>
+    <text x="1559" y="560" class="member">- conveyors_, technicians_: vector&lt;unique_ptr&gt;</text>
+    <text x="1559" y="586" class="member">- broker_, eventLog_, statistics_, repairDispatcher_</text>
+    <text x="1559" y="612" class="member">- rng_: mt19937,  idGen_: ProductIdGen</text>
+    <line x1="1535" y1="632" x2="2345" y2="632" class="line"/>
+    <text x="1559" y="660" class="member">- createMachine(def, mode): Machine*  &#9664; only type switch</text>
+    <text x="1559" y="686" class="member">- createConveyor / createTechnician, wireConveyorsToMachines</text>
+    <text x="1559" y="712" class="member">- computeAndInjectPriorityMap, subscribeBackpressure/FaultCascadeTopics</text>
+    <text x="1559" y="738" class="member">+ applyConfig(cfg), reset(), tick(), snapshot(), restore(), setScenario(s)</text>
+    <text x="1559" y="764" class="member">+ forceBreak, instantRepair, clearLog</text>
+    <text x="1559" y="790" class="member">+ findMachine(id), findConveyor(id), findTechnician(id)</text>
+    <text x="1559" y="816" class="member">+ getTick(), getScenario(), getMachines/getConveyors/getTechnicians()</text>
+    <line x1="1535" y1="836" x2="2345" y2="836" class="line"/>
+  </g>
+
+  <!-- ============ SIMULATIONOBJECT HIERARCHY ============ -->
+  <rect x="60" y="880" width="2160" height="1560" class="package pkg-sim"/>
+  <text x="92" y="923" class="package-title">SimulationObject is-a Hierarchy</text>
+
+  <g id="SimulationObject">
+    <rect x="900" y="962" width="430" height="150" class="box"/>
+    <rect x="900" y="962" width="430" height="56" class="head h-sim"/>
+    <text x="924" y="987" class="stereo">&lt;&lt;abstract&gt;&gt;</text>
+    <text x="924" y="1008" class="class-name">SimulationObject</text>
+    <line x1="900" y1="1018" x2="1330" y2="1018" class="line"/>
+    <text x="924" y="1048" class="member"># broker_: EventBroker&amp;</text>
+    <text x="924" y="1074" class="member">+ update(tick) = 0</text>
+    <text x="924" y="1100" class="member">+ getId() = 0</text>
+  </g>
+
+  <g id="IConveyor">
+    <rect x="636" y="1186" width="360" height="118" class="box"/>
+    <rect x="636" y="1186" width="360" height="48" class="head h-iface"/>
+    <text x="660" y="1216" class="stereo">&lt;&lt;interface&gt;&gt; IConveyor</text>
+    <line x1="636" y1="1234" x2="996" y2="1234" class="line"/>
+    <text x="660" y="1264" class="member">+ canAccept(): bool</text>
+    <text x="660" y="1290" class="member">+ push(p, tick), getId()</text>
+  </g>
+  <g id="IMachine">
+    <rect x="636" y="1326" width="360" height="128" class="box"/>
+    <rect x="636" y="1326" width="360" height="48" class="head h-iface"/>
+    <text x="660" y="1356" class="stereo">&lt;&lt;interface&gt;&gt; IMachine</text>
+    <line x1="636" y1="1374" x2="996" y2="1374" class="line"/>
+    <text x="660" y="1404" class="member">+ canAcceptProduct(type)</text>
+    <text x="660" y="1430" class="member">+ acceptProduct(p), getId()</text>
+  </g>
+
+  <g id="Conveyor">
+    <rect x="100" y="1140" width="470" height="330" class="box"/>
+    <rect x="100" y="1140" width="470" height="56" class="head h-sim"/>
+    <text x="124" y="1165" class="stereo">: SimulationObject, IConveyor</text>
+    <text x="124" y="1186" class="class-name">Conveyor</text>
+    <line x1="100" y1="1196" x2="570" y2="1196" class="line"/>
+    <text x="124" y="1226" class="member">- id_: string</text>
+    <text x="124" y="1252" class="member">- slots_: vector&lt;unique_ptr&lt;Product&gt;&gt;</text>
+    <text x="124" y="1278" class="member">- downstream_: IMachine*</text>
+    <line x1="100" y1="1301" x2="570" y2="1301" class="line"/>
+    <text x="124" y="1331" class="member">+ update(tick), canAccept()</text>
+    <text x="124" y="1357" class="member">+ push(p, tick), setDownstream(m)</text>
+    <text x="124" y="1383" class="member">+ slotAt(i), length(), getDownstream(), restoreFromSnap(snap)</text>
+    <text x="124" y="1428" class="tiny">slot buffer, shifts each tick;</text>
+    <text x="124" y="1450" class="tiny">push to full slot = std::abort</text>
+  </g>
+
+  <g id="Technician">
+    <rect x="100" y="1530" width="470" height="350" class="box"/>
+    <rect x="100" y="1530" width="470" height="56" class="head h-sim"/>
+    <text x="124" y="1555" class="stereo">: SimulationObject</text>
+    <text x="124" y="1576" class="class-name">Technician</text>
+    <line x1="100" y1="1586" x2="570" y2="1586" class="line"/>
+    <text x="124" y="1616" class="member">- id_, repairTime_, repairProgress_</text>
+    <text x="124" y="1642" class="member">- targetMachine_: Machine*</text>
+    <text x="124" y="1668" class="member">- currentState_: ITechnicianState*</text>
+    <line x1="100" y1="1691" x2="570" y2="1691" class="line"/>
+    <text x="124" y="1721" class="member">+ update(tick), assign(m, tick)</text>
+    <text x="124" y="1747" class="member">+ transitionTo(state, tick), isIdle()</text>
+    <text x="124" y="1773" class="member">+ restoreFromSnap(snap, target)</text>
+    <text x="124" y="1799" class="member">+ getTargetMachine(), getRepairTime/getRepairProgress(), getCurrentState()</text>
+    <text x="124" y="1822" class="tiny">repair done -&gt; machine.repair();</text>
+    <text x="124" y="1844" class="tiny">Resume published inside repair()</text>
+  </g>
+
+  <g id="Machine">
+    <rect x="1180" y="1140" width="900" height="718" class="box"/>
+    <rect x="1180" y="1140" width="900" height="70" class="head h-machine"/>
+    <text x="1204" y="1166" class="stereo">&lt;&lt;abstract&gt;&gt;  : SimulationObject, IMachine, IEventHandler</text>
+    <text x="1204" y="1194" class="class-name">Machine</text>
+    <line x1="1180" y1="1210" x2="2080" y2="1210" class="line"/>
+    <text x="1204" y="1240" class="member"># id_, type_: MachineType,  health_, maxHealth_ = 10</text>
+    <text x="1204" y="1266" class="member"># processingTick_, processingTime_, breakdownProb_</text>
+    <text x="1204" y="1292" class="member"># requiredCount_, outputCount_, pendingDownstreamFaults_</text>
+    <text x="1204" y="1318" class="member"># outputOverflowMode_: OverflowMode</text>
+    <text x="1204" y="1344" class="member"># inputBuffer_, currentProduct_: vector&lt;unique_ptr&lt;Product&gt;&gt;</text>
+    <text x="1204" y="1370" class="member"># outputConveyor_: IConveyor*,  currentState_: IMachineState*</text>
+    <text x="1204" y="1396" class="member"># rng_: mt19937&amp;,  idGen_: ProductIdGen&amp;</text>
+    <line x1="1180" y1="1419" x2="2080" y2="1419" class="line"/>
+    <text x="1204" y="1449" class="member">+ update(tick), canStart(): bool,  process(tick) = 0</text>
+    <text x="1204" y="1475" class="member">+ canAcceptProduct(type), acceptProduct(p)</text>
+    <text x="1204" y="1501" class="member">+ handle(ev), repair(tick), forceBreak()</text>
+    <text x="1204" y="1527" class="member">+ transitionTo(state, tick)</text>
+    <text x="1204" y="1553" class="member"># tryPushOrDrop(p, tick), gatherInputs(), publishStarted(), publishEvent(...)</text>
+    <text x="1204" y="1579" class="member">+ setOutputConveyor(c), serializeCurrentProduct(out), restoreFromSnap(snap)</text>
+    <text x="1204" y="1605" class="member">+ serializeInputs(out), clearInputs()   &#9664; virtual, MultiInput overrides</text>
+    <text x="1204" y="1631" class="member">+ getType/getHealth/getMaxHealth/getProcessingTick/getProcessingTime</text>
+    <text x="1204" y="1657" class="member">+ getBreakdownProb/getRequiredCount/getOutputCount/getOutputOverflowMode</text>
+    <text x="1204" y="1683" class="member">+ getInputBufferSize/getCurrentProductSize/getPendingDownstreamFaults</text>
+    <text x="1204" y="1709" class="member">+ getOutputConveyor/getCurrentState/isSuspendedByBackpressure</text>
+    <line x1="1180" y1="1734" x2="2080" y2="1734" class="line"/>
+    <text x="1204" y="1764" class="small">handle(ev): subscribes to (Fault/Resume, downstreamId) -&gt; fault cascade</text>
+    <text x="1204" y="1790" class="small">canStart() polls outputConveyor.canAccept() -&gt; backpressure</text>
+    <text x="1204" y="1830" class="small">Adding a machine type = new subclass + one Factory.createMachine case.</text>
+  </g>
+
+  <!-- Machine families -->
+  <g id="Spawner">
+    <rect x="100" y="1960" width="300" height="140" class="box"/>
+    <rect x="100" y="1960" width="300" height="46" class="head h-machine"/>
+    <text x="124" y="1989" class="stereo">&lt;&lt;abstract&gt;&gt; Spawner</text>
+    <line x1="100" y1="2006" x2="400" y2="2006" class="line"/>
+    <text x="124" y="2036" class="member">requiredCount = 0</text>
+    <text x="124" y="2062" class="member">+ makeProduct(id)=0, process(tick)</text>
+    <text x="124" y="2088" class="member"># publishStarted(){}, gatherInputs(){}</text>
+  </g>
+  <g id="Cutter">
+    <rect x="420" y="1960" width="300" height="140" class="box"/>
+    <rect x="420" y="1960" width="300" height="46" class="head h-machine"/>
+    <text x="444" y="1989" class="stereo">&lt;&lt;abstract&gt;&gt; Cutter</text>
+    <line x1="420" y1="2006" x2="720" y2="2006" class="line"/>
+    <text x="444" y="2036" class="member">1 -&gt; 1 transform</text>
+    <text x="444" y="2062" class="member">+ makeOutput(in,id)=0</text>
+    <text x="444" y="2088" class="member">+ process(tick)</text>
+  </g>
+  <g id="MultiInputMachine">
+    <rect x="740" y="1960" width="430" height="252" class="box"/>
+    <rect x="740" y="1960" width="430" height="46" class="head h-machine"/>
+    <text x="764" y="1989" class="stereo">&lt;&lt;abstract&gt;&gt; MultiInputMachine</text>
+    <line x1="740" y1="2006" x2="1170" y2="2006" class="line"/>
+    <text x="764" y="2036" class="member">- requiredTypes_: vector&lt;ProductType&gt;</text>
+    <text x="764" y="2062" class="member">- typedBuffer_: map&lt;ProductType, vec&gt;</text>
+    <line x1="740" y1="2085" x2="1170" y2="2085" class="line"/>
+    <text x="764" y="2115" class="member">+ canAcceptProduct/acceptProduct/canStart</text>
+    <text x="764" y="2141" class="member">+ makeOutput(inputs, id)=0</text>
+    <text x="764" y="2167" class="member">+ getInputBufferSize(), serializeInputs(out), clearInputs()</text>
+    <text x="764" y="2193" class="member"># gatherInputs(), process(tick)</text>
+  </g>
+  <g id="Painter">
+    <rect x="1190" y="1960" width="300" height="140" class="box"/>
+    <rect x="1190" y="1960" width="300" height="46" class="head h-machine"/>
+    <text x="1214" y="1989" class="class-name">Painter</text>
+    <line x1="1190" y1="2006" x2="1490" y2="2006" class="line"/>
+    <text x="1214" y="2036" class="member">: Machine</text>
+    <text x="1214" y="2062" class="member">+ process(tick)</text>
+    <text x="1214" y="2088" class="tiny">BodyPart -&gt; painted</text>
+  </g>
+  <g id="Packager">
+    <rect x="1510" y="1960" width="300" height="170" class="box"/>
+    <rect x="1510" y="1960" width="300" height="46" class="head h-machine"/>
+    <text x="1534" y="1989" class="class-name">Packager  (sink)</text>
+    <line x1="1510" y1="2006" x2="1810" y2="2006" class="line"/>
+    <text x="1534" y="2036" class="member">: Machine</text>
+    <text x="1534" y="2062" class="member">+ process(tick)</text>
+    <text x="1534" y="2088" class="tiny">consumes FinishedGuitar,</text>
+    <text x="1534" y="2110" class="tiny">no output conveyor</text>
+  </g>
+
+  <!-- concrete children -->
+  <g id="SpawnerKids">
+    <rect x="100" y="2120" width="300" height="54" class="box"/><rect x="100" y="2120" width="300" height="54" class="head h-machine"/>
+    <text x="124" y="2153" class="member">WoodSpawner (x3)</text>
+    <rect x="100" y="2178" width="300" height="54" class="box"/><rect x="100" y="2178" width="300" height="54" class="head h-machine"/>
+    <text x="124" y="2211" class="member">BridgeSpawner</text>
+    <rect x="100" y="2236" width="300" height="54" class="box"/><rect x="100" y="2236" width="300" height="54" class="head h-machine"/>
+    <text x="124" y="2269" class="member">PickupSpawner</text>
+  </g>
+  <g id="CutterKids">
+    <rect x="420" y="2120" width="300" height="54" class="box"/><rect x="420" y="2120" width="300" height="54" class="head h-machine"/>
+    <text x="444" y="2153" class="member">HeadCutter</text>
+    <rect x="420" y="2178" width="300" height="54" class="box"/><rect x="420" y="2178" width="300" height="54" class="head h-machine"/>
+    <text x="444" y="2211" class="member">NeckCutter</text>
+    <rect x="420" y="2236" width="300" height="54" class="box"/><rect x="420" y="2236" width="300" height="54" class="head h-machine"/>
+    <text x="444" y="2269" class="member">BodyCutter</text>
+  </g>
+  <g id="MultiKids" transform="translate(0,60)">
+    <rect x="740" y="2178" width="430" height="54" class="box"/><rect x="740" y="2178" width="430" height="54" class="head h-machine"/>
+    <text x="764" y="2211" class="member">ElecPartCollector (Bridge+Pickup)</text>
+    <rect x="740" y="2236" width="430" height="54" class="box"/><rect x="740" y="2236" width="430" height="54" class="head h-machine"/>
+    <text x="764" y="2269" class="member">BodyAssembler (Head+Neck+Body)</text>
+    <rect x="740" y="2294" width="430" height="54" class="box"/><rect x="740" y="2294" width="430" height="54" class="head h-machine"/>
+    <text x="764" y="2327" class="member">PartAssembler (Body+ElecSet)</text>
+  </g>
+
+  <!-- ===== HIERARCHY is-a arrows ===== -->
+  <!-- trio -> root (straight lines) -->
+  <path d="M 335 1140 L 1050 1112" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1630 1140 L 1230 1112" class="inh" marker-end="url(#inh)"/>
+  <path d="M 570 1530 L 920 1112" class="inh" marker-end="url(#inh)"/>
+  <text x="120" y="940" class="label">Technician is-a SimulationObject</text>
+  <!-- realizations (straight lines) -->
+  <path d="M 570 1245 L 636 1245" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1180 1390 L 996 1390" class="inh" marker-end="url(#inh)"/>
+  <!-- families -> Machine (straight lines) -->
+  <path d="M 250 1960 L 1350 1858" class="inh" marker-end="url(#inh)"/>
+  <path d="M 570 1960 L 1480 1858" class="inh" marker-end="url(#inh)"/>
+  <path d="M 955 1960 L 1610 1858" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1340 1960 L 1740 1858" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1660 1960 L 1870 1858" class="inh" marker-end="url(#inh)"/>
+  <!-- concretes -> families -->
+  <path d="M 250 2120 L 250 2100" class="inh" marker-end="url(#inh)"/>
+  <path d="M 180 2178 L 180 2100" class="inh" marker-end="url(#inh)"/>
+  <path d="M 180 2236 L 180 2100" class="inh" marker-end="url(#inh)"/>
+  <path d="M 570 2120 L 570 2100" class="inh" marker-end="url(#inh)"/>
+  <path d="M 500 2178 L 500 2100" class="inh" marker-end="url(#inh)"/>
+  <path d="M 500 2236 L 500 2100" class="inh" marker-end="url(#inh)"/>
+  <path d="M 955 2238 L 955 2212" class="inh" marker-end="url(#inh)"/>
+  <path d="M 880 2296 L 880 2212" class="inh" marker-end="url(#inh)"/>
+  <path d="M 880 2354 L 880 2212" class="inh" marker-end="url(#inh)"/>
+
+  <!-- ===== Factory has-a (own) ===== -->
+  <path d="M 1940 796 L 1940 1140" class="own" marker-end="url(#own)"/>
+  <text x="1960" y="980" class="label-own">owns vector&lt;Machine&gt;</text>
+  <path d="M 1535 530 L 1450 530 L 1450 1032 L 250 1032 L 250 1140" class="own" marker-end="url(#own)"/>
+  <text x="300" y="1022" class="label-own">owns Conveyors</text>
+  <path d="M 1600 796 L 1600 760 L 48 760 L 48 1620 L 100 1620" class="own" marker-end="url(#own)"/>
+  <text x="300" y="752" class="label-own">owns Technicians</text>
+
+  <!-- ============ STATE PATTERN ============ -->
+  <rect x="2260" y="880" width="900" height="720" class="package pkg-state"/>
+  <text x="2292" y="923" class="package-title">State Pattern</text>
+
+  <g id="IMachineState">
+    <rect x="2300" y="958" width="380" height="168" class="box"/>
+    <rect x="2300" y="958" width="380" height="48" class="head h-state"/>
+    <text x="2324" y="988" class="stereo">&lt;&lt;interface&gt;&gt; IMachineState</text>
+    <line x1="2300" y1="1006" x2="2680" y2="1006" class="line"/>
+    <text x="2324" y="1036" class="member">+ update(m, tick)=0</text>
+    <text x="2324" y="1062" class="member">+ onEnter, onExit</text>
+    <text x="2324" y="1088" class="member">+ name()=0</text>
+    <text x="2324" y="1114" class="tiny">operates on Machine&amp;</text>
+  </g>
+  <g id="MachineStates">
+    <rect x="2720" y="958" width="400" height="54" class="box"/><rect x="2720" y="958" width="400" height="54" class="head h-state"/>
+    <text x="2744" y="991" class="member">MachineIdleState &#9670;</text>
+    <rect x="2720" y="1016" width="400" height="54" class="box"/><rect x="2720" y="1016" width="400" height="54" class="head h-state"/>
+    <text x="2744" y="1049" class="member">MachineProcessingState &#9670;</text>
+    <rect x="2720" y="1074" width="400" height="54" class="box"/><rect x="2720" y="1074" width="400" height="54" class="head h-state"/>
+    <text x="2744" y="1107" class="member">MachineBrokenState &#9670;</text>
+  </g>
+
+  <g id="ITechnicianState">
+    <rect x="2300" y="1210" width="380" height="150" class="box"/>
+    <rect x="2300" y="1210" width="380" height="48" class="head h-state"/>
+    <text x="2324" y="1240" class="stereo">&lt;&lt;interface&gt;&gt; ITechnicianState</text>
+    <line x1="2300" y1="1258" x2="2680" y2="1258" class="line"/>
+    <text x="2324" y="1288" class="member">+ update(t, tick)=0</text>
+    <text x="2324" y="1314" class="member">+ onEnter, onExit, name()=0</text>
+    <text x="2324" y="1340" class="tiny">operates on Technician&amp;</text>
+  </g>
+  <g id="TechnicianStates">
+    <rect x="2720" y="1210" width="400" height="54" class="box"/><rect x="2720" y="1210" width="400" height="54" class="head h-state"/>
+    <text x="2744" y="1243" class="member">TechnicianIdleState &#9670;</text>
+    <rect x="2720" y="1268" width="400" height="54" class="box"/><rect x="2720" y="1268" width="400" height="54" class="head h-state"/>
+    <text x="2744" y="1301" class="member">TechnicianWorkingState &#9670;</text>
+  </g>
+
+  <rect x="2300" y="1400" width="820" height="180" class="note"/>
+  <text x="2324" y="1436" class="class-name">State pattern</text>
+  <text x="2324" y="1466" class="small">&#9670; each concrete state is a singleton (static instance()).</text>
+  <text x="2324" y="1494" class="small">Context holds currentState_ and calls transitionTo(next, tick)</text>
+  <text x="2324" y="1522" class="small">-&gt; onExit / onEnter. No state enum in Types.h.</text>
+  <text x="2324" y="1550" class="small">each override update()/name(); Processing &amp; Broken also onEnter().</text>
+
+  <!-- state is-a -->
+  <path d="M 2720 985 L 2700 985 L 2700 1040 L 2680 1040" class="inh" marker-end="url(#inh)"/>
+  <path d="M 2720 1043 L 2700 1043 L 2700 1042 L 2680 1042" class="inh" marker-end="url(#inh)"/>
+  <path d="M 2720 1101 L 2700 1101 L 2700 1044 L 2680 1044" class="inh" marker-end="url(#inh)"/>
+  <path d="M 2720 1237 L 2700 1237 L 2700 1285 L 2680 1285" class="inh" marker-end="url(#inh)"/>
+  <path d="M 2720 1295 L 2700 1295 L 2700 1287 L 2680 1287" class="inh" marker-end="url(#inh)"/>
+
+  <!-- Machine -> IMachineState (uses) -->
+  <path d="M 2080 1180 L 2200 1180 L 2200 1042 L 2300 1042" class="dep" marker-end="url(#dep)"/>
+  <text x="2095" y="1170" class="label-dep">currentState_</text>
+  <!-- Technician -> ITechnicianState (uses) -->
+  <path d="M 570 1640 L 2160 1640 L 2160 1285 L 2300 1285" class="dep" marker-end="url(#dep)"/>
+  <text x="1300" y="1630" class="label-dep">Technician currentState_  (State pattern)</text>
+
+  <!-- ============ OBSERVER PATTERN ============ -->
+  <rect x="2260" y="1640" width="1500" height="700" class="package pkg-observer"/>
+  <text x="2292" y="1683" class="package-title">Observer Pattern  (EventBroker pub / sub)</text>
+
+  <g id="IEventHandler">
+    <rect x="2300" y="1716" width="380" height="120" class="box"/>
+    <rect x="2300" y="1716" width="380" height="48" class="head h-observer"/>
+    <text x="2324" y="1746" class="stereo">&lt;&lt;interface&gt;&gt; IEventHandler</text>
+    <line x1="2300" y1="1764" x2="2680" y2="1764" class="line"/>
+    <text x="2324" y="1796" class="member">+ handle(ev: Event) = 0</text>
+  </g>
+  <g id="EventBroker">
+    <rect x="2720" y="1716" width="600" height="300" class="box"/>
+    <rect x="2720" y="1716" width="600" height="48" class="head h-observer"/>
+    <text x="2744" y="1748" class="class-name">EventBroker</text>
+    <line x1="2720" y1="1764" x2="3320" y2="1764" class="line"/>
+    <text x="2744" y="1794" class="member">- typeSubs_, topicSubs_, globalSubs_</text>
+    <text x="2744" y="1820" class="member">- eventQueue_: queue&lt;Event&gt;</text>
+    <line x1="2720" y1="1843" x2="3320" y2="1843" class="line"/>
+    <text x="2744" y="1873" class="member">+ subscribe(type, h)</text>
+    <text x="2744" y="1899" class="member">+ subscribe(type, srcId, h), subscribeAll(h)</text>
+    <text x="2744" y="1925" class="member">+ publish(ev), flush(), clearQueue, clearTopicSubscriptions</text>
+    <text x="2744" y="1951" class="member">+ snapshotQueue, restoreQueue, queueSize()</text>
+    <text x="2744" y="1991" class="tiny">flush(): dispatch (type,*) + (type, sourceId) topics</text>
+  </g>
+  <g id="EventLog">
+    <rect x="2300" y="1866" width="380" height="150" class="box"/>
+    <rect x="2300" y="1866" width="380" height="48" class="head h-observer"/>
+    <text x="2324" y="1896" class="stereo">: IEventHandler</text>
+    <text x="2510" y="1896" class="class-name">EventLog</text>
+    <line x1="2300" y1="1914" x2="2680" y2="1914" class="line"/>
+    <text x="2324" y="1944" class="member">- entries_: deque&lt;LogEntry&gt; (max 200, FIFO)</text>
+    <text x="2324" y="1970" class="member">+ handle(ev), clear(), getLogs()</text>
+    <text x="2324" y="1996" class="member">+ setLogs(logs), size()</text>
+  </g>
+  <g id="Statistics">
+    <rect x="2300" y="2046" width="380" height="222" class="box"/>
+    <rect x="2300" y="2046" width="380" height="48" class="head h-observer"/>
+    <text x="2324" y="2076" class="stereo">: IEventHandler</text>
+    <text x="2510" y="2076" class="class-name">Statistics</text>
+    <line x1="2300" y1="2094" x2="2680" y2="2094" class="line"/>
+    <text x="2324" y="2124" class="member">- finished_, wip_</text>
+    <text x="2324" y="2150" class="member">- breakdowns_, lost_</text>
+    <line x1="2300" y1="2170" x2="2680" y2="2170" class="line"/>
+    <text x="2324" y="2200" class="member">+ handle(ev), reset()</text>
+    <text x="2324" y="2226" class="member">+ getFinished/getWip/getBreakdowns/getLost()</text>
+    <text x="2324" y="2252" class="member">+ setSnapshot(f, w, b, l)</text>
+  </g>
+  <g id="RepairDispatcher">
+    <rect x="2720" y="2046" width="600" height="258" class="box"/>
+    <rect x="2720" y="2046" width="600" height="48" class="head h-observer"/>
+    <text x="2744" y="2076" class="stereo">: IEventHandler  (subscribes Fault)</text>
+    <text x="3120" y="2076" class="class-name">RepairDispatcher</text>
+    <line x1="2720" y1="2094" x2="3320" y2="2094" class="line"/>
+    <text x="2744" y="2124" class="member">- lookup_: IMachineLookup*,  technicians_: vector&lt;Technician*&gt;</text>
+    <text x="2744" y="2150" class="member">- repairQueue_: vector&lt;QueueEntry&gt;, priorityMap_, nextSeq_</text>
+    <text x="2744" y="2176" class="member">+ handle(Fault), update(tick), setPriorityMap, priorityOf(id)</text>
+    <text x="2744" y="2202" class="member">+ setLookup(l), registerTechnician(t), clearTechnicians()</text>
+    <text x="2744" y="2228" class="member">+ clearQueue(), restoreQueue(entries, nextSeq)</text>
+    <text x="2744" y="2254" class="member">+ getQueue(), getNextSeq(), getTechnicians()</text>
+    <text x="2744" y="2284" class="tiny">QueueEntry: machine, priority, faultTick, seq</text>
+  </g>
+
+  <!-- observer is-a (straight lines) -->
+  <path d="M 2680 1776 L 2720 1776" class="inh" marker-start="url(#inh)" marker-end="url(#inh)"/>
+  <path d="M 2440 1866 L 2440 1836" class="inh" marker-end="url(#inh)"/>
+  <path d="M 2620 2046 L 2620 1836" class="inh" marker-end="url(#inh)"/>
+  <path d="M 2720 2046 L 2640 1836" class="inh" marker-end="url(#inh)"/>
+  <text x="2470" y="1832" class="label">implement IEventHandler</text>
+  <!-- EventBroker -> IEventHandler (notifies) -->
+  <path d="M 2720 1740 L 2680 1740" class="dep" marker-end="url(#dep)"/>
+  <text x="2470" y="1726" class="label-dep">flush notifies</text>
+  <!-- Machine implements IEventHandler -->
+  <path d="M 2080 1500 L 2300 1716" class="inh" marker-end="url(#inh)"/>
+  <text x="2095" y="1490" class="label">Machine implements IEventHandler</text>
+  <!-- RepairDispatcher -> Technician (uses) outer route -->
+  <path d="M 2900 2226 L 2900 2320 L 40 2320 L 40 1740 L 100 1740" class="dep" marker-end="url(#dep)"/>
+  <text x="600" y="2310" class="label-dep">dispatches / assigns Technician</text>
+
+  <!-- ===== Controller / Runner deps ===== -->
+  <path d="M 676 500 L 1450 500 L 1450 470 L 1535 470" class="dep" marker-end="url(#dep)"/>
+  <text x="700" y="490" class="label-dep">Controller -&gt; Factory (dispatch)</text>
+  <path d="M 676 700 L 1490 700 L 1490 640 L 1535 640" class="dep" marker-end="url(#dep)"/>
+  <text x="700" y="690" class="label-dep">Runner drives Factory.tick</text>
+
+  <!-- ============ PRODUCT HIERARCHY ============ -->
+  <g transform="translate(0,60)">
+  <rect x="60" y="2400" width="1560" height="760" class="package pkg-product"/>
+  <text x="92" y="2443" class="package-title">Product is-a Hierarchy  (unique_ptr ownership chain)</text>
+
+  <g id="Product">
+    <rect x="100" y="2480" width="420" height="150" class="box"/>
+    <rect x="100" y="2480" width="420" height="56" class="head h-product"/>
+    <text x="124" y="2505" class="stereo">&lt;&lt;abstract&gt;&gt;</text>
+    <text x="124" y="2526" class="class-name">Product</text>
+    <line x1="100" y1="2536" x2="520" y2="2536" class="line"/>
+    <text x="124" y="2566" class="member">- id_: int,  type_: ProductType</text>
+    <text x="124" y="2592" class="member">+ getId(), getType()</text>
+  </g>
+  <g id="ProductIdGen">
+    <rect x="560" y="2480" width="420" height="150" class="box"/>
+    <rect x="560" y="2480" width="420" height="56" class="head h-value"/>
+    <text x="584" y="2505" class="stereo">&lt;&lt;util&gt;&gt;</text>
+    <text x="584" y="2526" class="class-name">ProductIdGen</text>
+    <line x1="560" y1="2536" x2="980" y2="2536" class="line"/>
+    <text x="584" y="2566" class="member">- counter_: atomic&lt;int&gt;</text>
+    <text x="584" y="2592" class="member">+ next(), peek(), setCounter(v)</text>
+  </g>
+
+  <g id="ProductKids">
+    <rect x="100" y="2670" width="360" height="74" class="box"/><rect x="100" y="2670" width="360" height="40" class="head h-product"/>
+    <text x="124" y="2697" class="member">RawWood</text><text x="124" y="2732" class="tiny">WoodSpawner</text>
+    <rect x="480" y="2670" width="360" height="74" class="box"/><rect x="480" y="2670" width="360" height="40" class="head h-product"/>
+    <text x="504" y="2697" class="member">HeadPart</text>
+    <rect x="860" y="2670" width="360" height="74" class="box"/><rect x="860" y="2670" width="360" height="40" class="head h-product"/>
+    <text x="884" y="2697" class="member">NeckPart</text>
+
+    <rect x="100" y="2758" width="360" height="74" class="box"/><rect x="100" y="2758" width="360" height="40" class="head h-product"/>
+    <text x="124" y="2785" class="member">BodyPart</text><text x="124" y="2820" class="tiny">+ isPainted: bool</text>
+    <rect x="480" y="2758" width="360" height="74" class="box"/><rect x="480" y="2758" width="360" height="40" class="head h-product"/>
+    <text x="504" y="2785" class="member">Bridge</text>
+    <rect x="860" y="2758" width="360" height="74" class="box"/><rect x="860" y="2758" width="360" height="40" class="head h-product"/>
+    <text x="884" y="2785" class="member">Pickup</text>
+
+    <rect x="100" y="2846" width="360" height="74" class="box"/><rect x="100" y="2846" width="360" height="40" class="head h-product"/>
+    <text x="124" y="2873" class="member">ElecPartSet</text>
+    <rect x="480" y="2846" width="360" height="74" class="box"/><rect x="480" y="2846" width="360" height="40" class="head h-product"/>
+    <text x="504" y="2873" class="member">AssembledBody</text>
+    <rect x="860" y="2846" width="360" height="74" class="box"/><rect x="860" y="2846" width="360" height="40" class="head h-product"/>
+    <text x="884" y="2873" class="member">FinishedGuitar</text>
+  </g>
+
+  <!-- product is-a (straight lines, each child -> Product) -->
+  <path d="M 280 2670 L 220 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 660 2670 L 310 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1040 2670 L 400 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 280 2758 L 220 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 660 2758 L 310 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1040 2758 L 400 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 280 2846 L 220 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 660 2846 L 310 2630" class="inh" marker-end="url(#inh)"/>
+  <path d="M 1040 2846 L 400 2630" class="inh" marker-end="url(#inh)"/>
+
+  <g id="ProductNote">
+    <rect x="1020" y="2480" width="560" height="150" class="note"/>
+    <text x="1044" y="2516" class="class-name">Ownership (has-a)</text>
+    <text x="1044" y="2550" class="small">Spawner make_unique&lt;Product&gt; -&gt; moved through</text>
+    <text x="1044" y="2580" class="small">Conveyor.slots_ -&gt; Machine.inputBuffer_ -&gt; sink.</text>
+    <text x="1044" y="2610" class="small">Machine &#9670; Product,  Conveyor &#9670; Product.</text>
+  </g>
+  </g>
+
+  <!-- Conveyor/Machine own Product (straight lines) -->
+  <path d="M 100 1470 L 100 2560" class="own" marker-end="url(#own)"/>
+  <path d="M 1180 1858 L 520 2560" class="own" marker-end="url(#own)"/>
+  <text x="140" y="2520" class="label-own">Conveyor / Machine own Product</text>
+
+  <!-- ============ VALUE / DTO ============ -->
+  <g transform="translate(0,60)">
+  <rect x="1700" y="2400" width="2060" height="760" class="package pkg-value"/>
+  <text x="1732" y="2443" class="package-title">DTO / Snapshot &amp; Value Types</text>
+
+  <g id="FactorySnap">
+    <rect x="1740" y="2480" width="560" height="330" class="box"/>
+    <rect x="1740" y="2480" width="560" height="48" class="head h-value"/>
+    <text x="1764" y="2510" class="stereo">&lt;&lt;struct&gt;&gt; FactorySnap</text>
+    <line x1="1740" y1="2528" x2="2300" y2="2528" class="line"/>
+    <text x="1764" y="2558" class="member">+ tick, scenario, speedMultiplier, running</text>
+    <text x="1764" y="2584" class="member">+ machines: vector&lt;MachineSnap&gt;</text>
+    <text x="1764" y="2610" class="member">+ conveyors: vector&lt;ConveyorSnap&gt;</text>
+    <text x="1764" y="2636" class="member">+ technicians: vector&lt;TechnicianSnap&gt;</text>
+    <text x="1764" y="2662" class="member">+ pendingRepairs: vector&lt;RepairOrderSnap&gt;</text>
+    <text x="1764" y="2688" class="member">+ stats: StatisticsSnap</text>
+    <text x="1764" y="2714" class="member">+ logs, pendingEvents: vector&lt;Event&gt;</text>
+    <text x="1764" y="2740" class="member">+ rngState: string, productIdCounter: int</text>
+    <text x="1764" y="2780" class="tiny">raw data only; states derived on restore. MementoStore &#9670; this.</text>
+  </g>
+  <g id="NestedSnaps">
+    <rect x="2330" y="2480" width="620" height="330" class="box"/>
+    <rect x="2330" y="2480" width="620" height="48" class="head h-value"/>
+    <text x="2354" y="2510" class="stereo">&lt;&lt;struct&gt;&gt; per-object Snaps</text>
+    <line x1="2330" y1="2528" x2="2950" y2="2528" class="line"/>
+    <text x="2354" y="2558" class="member">MachineSnap: id, type, health, progress,</text>
+    <text x="2354" y="2584" class="member">   outputOverflowMode, suspended, inputBuffer ...</text>
+    <text x="2354" y="2610" class="member">ConveyorSnap: id, downstreamId, length, slots</text>
+    <text x="2354" y="2636" class="member">TechnicianSnap: id, repairTime, repairProgress,</text>
+    <text x="2354" y="2662" class="member">   targetMachineId</text>
+    <text x="2354" y="2688" class="member">StatisticsSnap: finished, wip, breakdowns, lost</text>
+    <text x="2354" y="2714" class="member">ProductSnap: id, type, isPainted</text>
+    <text x="2354" y="2740" class="member">RepairOrderSnap: machineId, priority, faultTick, seq</text>
+    <text x="2354" y="2780" class="tiny">ProductSnap &lt;-&gt; unique_ptr&lt;Product&gt; via productFromSnap/toSnap</text>
+  </g>
+  <g id="Event">
+    <rect x="2980" y="2480" width="380" height="150" class="box"/>
+    <rect x="2980" y="2480" width="380" height="48" class="head h-value"/>
+    <text x="3004" y="2510" class="stereo">&lt;&lt;struct&gt;&gt; Event</text>
+    <line x1="2980" y1="2528" x2="3360" y2="2528" class="line"/>
+    <text x="3004" y="2558" class="member">+ type: EventType, sourceId</text>
+    <text x="3004" y="2584" class="member">+ tick: int</text>
+    <text x="3004" y="2610" class="member">+ productId?, productType?</text>
+  </g>
+  <g id="MachineCmd">
+    <rect x="3390" y="2480" width="350" height="150" class="box"/>
+    <rect x="3390" y="2480" width="350" height="48" class="head h-value"/>
+    <text x="3414" y="2510" class="stereo">&lt;&lt;struct&gt;&gt; MachineCmd</text>
+    <line x1="3390" y1="2528" x2="3740" y2="2528" class="line"/>
+    <text x="3414" y="2558" class="member">+ action: CmdAction</text>
+    <text x="3414" y="2584" class="member">+ targetMachineId, speedMultiplier</text>
+    <text x="3414" y="2610" class="member">+ scenario, rewindTargetTick</text>
+  </g>
+  <g id="LogEntry">
+    <rect x="2980" y="2650" width="380" height="120" class="box"/>
+    <rect x="2980" y="2650" width="380" height="48" class="head h-value"/>
+    <text x="3004" y="2680" class="stereo">&lt;&lt;struct&gt;&gt; LogEntry</text>
+    <line x1="2980" y1="2698" x2="3360" y2="2698" class="line"/>
+    <text x="3004" y="2728" class="member">+ tick, sourceId, message</text>
+  </g>
+
+  <g id="Enums">
+    <rect x="1740" y="2840" width="1960" height="290" class="box"/>
+    <rect x="1740" y="2840" width="1960" height="48" class="head h-iface"/>
+    <text x="1764" y="2870" class="stereo">&lt;&lt;enum&gt;&gt; value types (Types.h)</text>
+    <line x1="1740" y1="2888" x2="3700" y2="2888" class="line"/>
+    <text x="1764" y="2918" class="member">CmdAction: None, Start, Pause, Reset, SetSpeed, SetScenario, ForceBreak, InstantRepair, Rewind, ClearLog</text>
+    <text x="1764" y="2948" class="member">MachineType(11): WoodSpawner, BridgeSpawner, PickupSpawner, Head/Neck/BodyCutter, Painter,</text>
+    <text x="1764" y="2974" class="member">     ElecPartCollector, Body/PartAssembler, Packager</text>
+    <text x="1764" y="3004" class="member">EventType(8): Fault, Resume, Started, Completed, Spawned, Packaged, Drop, Backpressure</text>
+    <text x="1764" y="3034" class="member">OverflowMode: Drop, Backpressure       ScenarioType(5): Normal, Breakdowns, Bottleneck, Overflow, SmartFactory</text>
+    <text x="1764" y="3064" class="member">ProductType(9): RawWood, HeadPart, NeckPart, BodyPart, Bridge, Pickup, ElecPartSet, AssembledBody, FinishedGuitar</text>
+    <text x="1764" y="3104" class="tiny">MementoStore &#9670; deque&lt;FactorySnap&gt; &#183; Factory.snapshot()/restore() produce &amp; consume FactorySnap (Memento pattern).</text>
+  </g>
+
+  <!-- ============ SUMMARY TABLE ============ -->
+  <rect x="60" y="3200" width="3700" height="470" class="package"/>
+  <text x="92" y="3243" class="package-title">Relationship Summary by Pattern</text>
+
+  <rect x="96" y="3278" width="360" height="40" class="t-head"/>
+  <rect x="456" y="3278" width="1380" height="40" class="t-head"/>
+  <rect x="1836" y="3278" width="1888" height="40" class="t-head"/>
+  <text x="116" y="3305" class="label">Pattern</text>
+  <text x="476" y="3305" class="label">Participants</text>
+  <text x="1856" y="3305" class="label">Intent</text>
+
+  <rect x="96" y="3318" width="360" height="48" class="t-row"/><rect x="456" y="3318" width="1380" height="48" class="t-row"/><rect x="1836" y="3318" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3347" class="member">is-a (core)</text>
+  <text x="476" y="3347" class="small">Machine, Conveyor, Technician -&gt; SimulationObject ; Spawner/Cutter/MultiInputMachine/Painter/Packager -&gt; Machine</text>
+  <text x="1856" y="3347" class="small">Main loop holds base pointers, calls update(tick) / process(tick) with no concrete-type branching.</text>
+
+  <rect x="96" y="3366" width="360" height="48" class="t-row"/><rect x="456" y="3366" width="1380" height="48" class="t-row"/><rect x="1836" y="3366" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3395" class="member">State</text>
+  <text x="476" y="3395" class="small">IMachineState -&gt; 3 states ;  ITechnicianState -&gt; 2 states ;  contexts: Machine, Technician</text>
+  <text x="1856" y="3395" class="small">Per-state behaviour delegated; transitionTo(next). Concrete states are singletons.</text>
+
+  <rect x="96" y="3414" width="360" height="48" class="t-row"/><rect x="456" y="3414" width="1380" height="48" class="t-row"/><rect x="1836" y="3414" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3443" class="member">Observer</text>
+  <text x="476" y="3443" class="small">EventBroker + IEventHandler &lt;- EventLog, Statistics, Machine, RepairDispatcher</text>
+  <text x="1856" y="3443" class="small">publish() queues, flush() dispatches by (type) and (type, sourceId). Decouples producers from consumers.</text>
+
+  <rect x="96" y="3462" width="360" height="48" class="t-row"/><rect x="456" y="3462" width="1380" height="48" class="t-row"/><rect x="1836" y="3462" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3491" class="member">Factory</text>
+  <text x="476" y="3491" class="small">Factory.createMachine / createConveyor / createTechnician (built from ScenarioConfig)</text>
+  <text x="1856" y="3491" class="small">Single type switch builds objects. New machine type = new subclass + one switch case.</text>
+
+  <rect x="96" y="3510" width="360" height="48" class="t-row"/><rect x="456" y="3510" width="1380" height="48" class="t-row"/><rect x="1836" y="3510" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3539" class="member">Memento</text>
+  <text x="476" y="3539" class="small">MementoStore &#9670; FactorySnap ;  Factory.snapshot() / restore()</text>
+  <text x="1856" y="3539" class="small">push() each tick, rewind(tick) restores prior state incl. RNG state + product id counter.</text>
+
+  <rect x="96" y="3558" width="360" height="48" class="t-row"/><rect x="456" y="3558" width="1380" height="48" class="t-row"/><rect x="1836" y="3558" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3587" class="member">has-a (own)</text>
+  <text x="476" y="3587" class="small">Factory &#9670; Machine / Conveyor / Technician ;  Machine &#9670; Product ;  Conveyor &#9670; Product</text>
+  <text x="1856" y="3587" class="small">Strict unique_ptr ownership chain: spawner -&gt; conveyor -&gt; machine -&gt; sink.</text>
+
+  <rect x="96" y="3606" width="360" height="48" class="t-row"/><rect x="456" y="3606" width="1380" height="48" class="t-row"/><rect x="1836" y="3606" width="1888" height="48" class="t-row"/>
+  <text x="116" y="3635" class="member">dependency</text>
+  <text x="476" y="3635" class="small">Controller -&gt; Factory / Runner / Memento / Loader ;  RepairDispatcher -&gt; IMachineLookup, Technician</text>
+  <text x="1856" y="3635" class="small">Controller is a thin dispatcher. Factory implements IMachineLookup so the dispatcher resolves ids without owning.</text>
+  </g>
+
+</svg>

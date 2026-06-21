@@ -13,7 +13,7 @@
 class EventBroker;
 class EventLog;
 class Statistics;
-class TechnicianManager;
+class RepairDispatcher;
 class Machine;
 class Conveyor;
 class Technician;
@@ -29,7 +29,7 @@ public:
     Factory(EventBroker&       broker,
             EventLog&          eventLog,
             Statistics&        statistics,
-            TechnicianManager& technicianManager);
+            RepairDispatcher&  repairDispatcher);
 
     // unique_ptr<forward-declared> 멤버 → 소멸자를 .cpp에 정의해 완전 타입 의존을 격리.
     ~Factory();
@@ -76,7 +76,7 @@ private:
     EventBroker&       broker_;
     EventLog&          eventLog_;
     Statistics&        statistics_;
-    TechnicianManager& technicianManager_;
+    RepairDispatcher&  repairDispatcher_;
 
     // 소유 컨테이너
     std::vector<std::unique_ptr<Machine>>    machines_;

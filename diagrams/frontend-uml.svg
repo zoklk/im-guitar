@@ -1,0 +1,290 @@
+<svg viewBox="0 0 1660 1260" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',sans-serif">
+  <defs>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="114%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.14"/>
+    </filter>
+    <marker id="dep" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 12 12">
+      <path d="M1.5,1.5 L10,6 L1.5,10.5" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    </marker>
+    <marker id="depTeal" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 12 12">
+      <path d="M1.5,1.5 L10,6 L1.5,10.5" fill="none" stroke="#0d9488" stroke-width="1.5"/>
+    </marker>
+    <marker id="real" markerWidth="18" markerHeight="14" refX="16" refY="7" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 18 14">
+      <path d="M1.5,1.5 L16,7 L1.5,12.5 Z" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+    </marker>
+  </defs>
+
+  <rect width="1660" height="1260" fill="#ffffff"/>
+
+  <!-- ═══ Title ═══ -->
+  <text x="20" y="34" font-size="19" font-weight="700" fill="#0f172a">im-guitar Frontend UML<tspan dx="12" font-size="12" font-weight="400" fill="#64748b">— View Layer Class Diagram · SDL2 + OpenGL3 + Dear ImGui</tspan></text>
+
+  <!-- ═══ Tier captions ═══ -->
+  <g font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">
+    <text x="170" y="58">ENGINE · ENTRY POINT</text>
+    <text x="1330" y="58">DATA CONTRACTS (MODEL ↔ VIEW)</text>
+    <text x="170" y="232">FRONTEND ORCHESTRATOR</text>
+    <text x="20" y="472">UI PANELS (Panel impls)</text>
+    <text x="950" y="992">SHARED RESOURCES</text>
+  </g>
+
+  <!-- ═══════════ Box: main.cpp ═══════════ -->
+  <rect x="170" y="65" width="330" height="130" rx="8" fill="#ffffff" stroke="#475569" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M170,107 L170,73 Q170,65 178,65 L492,65 Q500,65 500,73 L500,107 Z" fill="#475569"/>
+  <text x="335" y="81" text-anchor="middle" font-size="9.5" font-style="italic" fill="#cbd5e1">«file» graphics engine · entry point</text>
+  <text x="335" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">main.cpp</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="180" y="123">+main() — SDL2·GL3·ImGui init, 1280×720 window</text>
+    <text x="180" y="138">+MainLoopStep() — runs once per frame</text>
+    <text x="180" y="153">AppContext — owns Factory·Controller·View</text>
+    <text x="180" y="168" fill="#64748b">vsync 60FPS · GL core 3.0 · #version 130</text>
+  </g>
+
+  <!-- ═══════════ Note: main loop ═══════════ -->
+  <path d="M560,65 L946,65 L960,79 L960,195 L560,195 Z" fill="#fefce8" stroke="#d4a017" stroke-width="1.2" filter="url(#sh)"/>
+  <path d="M946,65 L946,79 L960,79 Z" fill="#fde68a" stroke="#d4a017" stroke-width="1"/>
+  <line x1="560" y1="130" x2="500" y2="130" stroke="#d4a017" stroke-width="1.1" stroke-dasharray="2,3"/>
+  <text x="572" y="86" font-size="11" font-weight="700" fill="#854d0e">Main loop — MainLoopStep(), every frame @ 60 FPS</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#713f12">
+    <text x="572" y="108">① runner.tryAdvance(dt) — advance simulation tick</text>
+    <text x="572" y="124">② factory.snapshot() → build FactorySnap</text>
+    <text x="572" y="140">③ view.render(snap) → draw UI + collect cmd</text>
+    <text x="572" y="156">④ ctrl.dispatch(cmd) — apply command to backend</text>
+  </g>
+
+  <!-- ═══════════ Box: FactorySnap ═══════════ -->
+  <rect x="1330" y="65" width="290" height="215" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M1330,107 L1330,73 Q1330,65 1338,65 L1612,65 Q1620,65 1620,73 L1620,107 Z" fill="#d97706"/>
+  <text x="1475" y="81" text-anchor="middle" font-size="9.5" font-style="italic" fill="#fef3c7">«struct» Model → View (read-only)</text>
+  <text x="1475" y="99" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">FactorySnap</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="1340" y="123">tick : int · running : bool</text>
+    <text x="1340" y="138">speedMultiplier · scenario</text>
+    <text x="1340" y="153">machines : vector&lt;MachineSnap&gt;</text>
+    <text x="1340" y="168">conveyors : vector&lt;ConveyorSnap&gt;</text>
+    <text x="1340" y="183">technicians : vector&lt;TechnicianSnap&gt;</text>
+    <text x="1340" y="198">stats : StatisticsSnap</text>
+    <text x="1340" y="213">logs : vector&lt;LogEntry&gt;</text>
+  </g>
+  <line x1="1330" y1="224" x2="1620" y2="224" stroke="#e2e8f0"/>
+  <text x="1340" y="243" font-size="10" font-style="italic" fill="#64748b">+ internal rewind state (rngState, queues …)</text>
+
+  <!-- ═══════════ Box: View ═══════════ -->
+  <rect x="170" y="240" width="340" height="190" rx="8" fill="#ffffff" stroke="#4f46e5" stroke-width="1.4" filter="url(#sh)"/>
+  <path d="M170,270 L170,248 Q170,240 178,240 L502,240 Q510,240 510,248 L510,270 Z" fill="#4f46e5"/>
+  <text x="340" y="260" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">View</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="180" y="286">-controlPanel : unique_ptr&lt;ControlPanel&gt;</text>
+    <text x="180" y="301">-statsPanel : unique_ptr&lt;StatisticsPanel&gt;</text>
+    <text x="180" y="316">-inspectorPanel : unique_ptr&lt;InspectorPanel&gt;</text>
+    <text x="180" y="331">-logPanel : unique_ptr&lt;LogPanel&gt;</text>
+    <text x="180" y="346" font-size="10">-factoryFloorPanel : unique_ptr&lt;FactoryFloorPanel&gt;</text>
+  </g>
+  <line x1="170" y1="358" x2="510" y2="358" stroke="#e2e8f0"/>
+  <text x="180" y="374" font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">+render(snap : const FactorySnap&amp;) : MachineCmd</text>
+  <line x1="170" y1="384" x2="510" y2="384" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="180" y="400">▸ Layout: left = 3-col top strip + factory floor</text>
+    <text x="180" y="414">▸ right sidebar 350px · collects cmd each frame</text>
+  </g>
+
+  <!-- ═══════════ Box: MachineCmd ═══════════ -->
+  <rect x="1330" y="305" width="290" height="150" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M1330,347 L1330,313 Q1330,305 1338,305 L1612,305 Q1620,305 1620,313 L1620,347 Z" fill="#d97706"/>
+  <text x="1475" y="321" text-anchor="middle" font-size="9.5" font-style="italic" fill="#fef3c7">«struct» View → Controller (command)</text>
+  <text x="1475" y="339" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">MachineCmd</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="1340" y="363">action : CmdAction</text>
+    <text x="1340" y="378">targetMachineId : string</text>
+    <text x="1340" y="393">speedMultiplier · scenario · rewindTick</text>
+  </g>
+  <line x1="1330" y1="404" x2="1620" y2="404" stroke="#e2e8f0"/>
+  <g font-size="9.5" font-style="italic" fill="#64748b">
+    <text x="1340" y="420">Start · Pause · Reset · SetSpeed · SetScenario</text>
+    <text x="1340" y="434">Rewind · ForceBreak · InstantRepair · ClearLog</text>
+  </g>
+
+  <!-- ═══════════ Box: ControlPanel ═══════════ -->
+  <rect x="20" y="480" width="270" height="185" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M20,510 L20,488 Q20,480 28,480 L282,480 Q290,480 290,488 L290,510 Z" fill="#0284c7"/>
+  <text x="155" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">ControlPanel</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="30" y="526">-selectedScenario : int</text>
+    <text x="30" y="541">-simSpeed : int (1~5)</text>
+  </g>
+  <line x1="20" y1="551" x2="290" y2="551" stroke="#e2e8f0"/>
+  <text x="30" y="567" font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">+render(snap, out) override</text>
+  <line x1="20" y1="577" x2="290" y2="577" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="30" y="593">▸ Start / Pause buttons</text>
+    <text x="30" y="607">▸ Speed slider → SetSpeed</text>
+    <text x="30" y="621">▸ Scenario combo + Load &amp; Reset</text>
+    <text x="30" y="635">▸ Rewind 100 Ticks (Time Travel)</text>
+  </g>
+
+  <!-- ═══════════ Box: StatisticsPanel ═══════════ -->
+  <rect x="312" y="480" width="260" height="150" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M312,510 L312,488 Q312,480 320,480 L564,480 Q572,480 572,488 L572,510 Z" fill="#0284c7"/>
+  <text x="442" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">StatisticsPanel</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="322" y="526">+render(snap, out) override</text>
+    <text x="322" y="541">-DrawStatBox(title, val, color)</text>
+  </g>
+  <line x1="312" y1="551" x2="572" y2="551" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="322" y="567">▸ Finished · WIP · Breakdowns · Lost</text>
+    <text x="322" y="581">▸ 4 neon-border stat boxes</text>
+  </g>
+
+  <!-- ═══════════ Box: LogPanel ═══════════ -->
+  <rect x="594" y="480" width="260" height="140" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M594,510 L594,488 Q594,480 602,480 L846,480 Q854,480 854,488 L854,510 Z" fill="#0284c7"/>
+  <text x="724" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">LogPanel</text>
+  <text x="604" y="526" font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">+render(snap, out) override</text>
+  <line x1="594" y1="536" x2="854" y2="536" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="604" y="552">▸ fault·drop·backpressure → <tspan fill="#dc2626">red</tspan></text>
+    <text x="604" y="566">▸ completed·resume·packaged → <tspan fill="#16a34a">green</tspan></text>
+    <text x="604" y="580">▸ others → white · auto-scrolls to latest</text>
+  </g>
+
+  <!-- ═══════════ Box: FactoryFloorPanel ═══════════ -->
+  <rect x="876" y="480" width="350" height="300" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" filter="url(#sh)"/>
+  <path d="M876,510 L876,488 Q876,480 884,480 L1218,480 Q1226,480 1226,488 L1226,510 Z" fill="#0284c7"/>
+  <text x="1051" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">FactoryFloorPanel</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="886" y="526">-nodes_ : unordered_map&lt;string, NodeInfo&gt;</text>
+    <text x="886" y="541">-lines_ : vector&lt;ConvLayout&gt; (12 lines)</text>
+    <text x="886" y="556">-productImages : map&lt;string, ProductImage&gt;</text>
+    <text x="886" y="571">-machineTextures_ : map&lt;string, GLuint&gt;</text>
+  </g>
+  <line x1="876" y1="581" x2="1226" y2="581" stroke="#e2e8f0"/>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="886" y="597">+render(snap, out) override</text>
+    <text x="886" y="612">-initLayout() — positions 13 machine nodes</text>
+    <text x="886" y="627">-LoadProductImages() · -LoadMachineTextures()</text>
+    <text x="886" y="642">-DrawConveyor() — belt·items·bottleneck label</text>
+    <text x="886" y="657">-DrawMachineNode() — texture·status·HP bar</text>
+    <text x="886" y="672">-DrawTechniciansOnFloor() — repair animation</text>
+    <text x="886" y="687">-DrawTechnicianManager() — technician roster</text>
+  </g>
+  <line x1="876" y1="697" x2="1226" y2="697" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="886" y="713">▸ node click → updates g_selectedMachineId</text>
+    <text x="886" y="727">▸ full belt → <tspan fill="#dc2626">red bottleneck label</tspan></text>
+    <text x="886" y="741">▸ «helper» NodeInfo·ConvLayout·ProductImage·Anchor</text>
+  </g>
+
+  <!-- ═══════════ Box: InspectorPanel ═══════════ -->
+  <rect x="1298" y="480" width="290" height="220" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M1298,510 L1298,488 Q1298,480 1306,480 L1580,480 Q1588,480 1588,488 L1588,510 Z" fill="#0284c7"/>
+  <text x="1443" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">InspectorPanel</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="1308" y="526">-machineTextures : map&lt;string, GLuint&gt;</text>
+    <text x="1308" y="541">-texturesLoaded : bool</text>
+  </g>
+  <line x1="1298" y1="551" x2="1588" y2="551" stroke="#e2e8f0"/>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="1308" y="567">+render(snap, out) override</text>
+    <text x="1308" y="582">-LoadMachineTextures()</text>
+    <text x="1308" y="597">-getMachineType(id) : string</text>
+  </g>
+  <line x1="1298" y1="607" x2="1588" y2="607" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="1308" y="623">▸ machine image + Health/Progress bars</text>
+    <text x="1308" y="637">▸ Breakdown Risk % · Output · process ticks</text>
+    <text x="1308" y="651">▸ X-Ray: internal parts (currentProduct)</text>
+    <text x="1308" y="665">▸ Force Break / Instant Repair → cmd</text>
+  </g>
+
+  <!-- ═══════════ Box: Panel (interface) ═══════════ -->
+  <rect x="560" y="900" width="350" height="100" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.4" filter="url(#sh)"/>
+  <path d="M560,942 L560,908 Q560,900 568,900 L902,900 Q910,900 910,908 L910,942 Z" fill="#7c3aed"/>
+  <text x="735" y="916" text-anchor="middle" font-size="9.5" font-style="italic" fill="#ede9fe">«interface»</text>
+  <text x="735" y="934" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">Panel</text>
+  <g font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">
+    <text x="570" y="958">+render(const FactorySnap&amp;, MachineCmd&amp;) = 0</text>
+    <text x="570" y="973">+~Panel() <tspan font-style="italic" fill="#64748b">— common contract for all panels</tspan></text>
+  </g>
+
+  <!-- ═══════════ Box: TextureLoader ═══════════ -->
+  <rect x="950" y="1000" width="380" height="110" rx="8" fill="#ffffff" stroke="#059669" stroke-width="1.3" filter="url(#sh)"/>
+  <path d="M950,1042 L950,1008 Q950,1000 958,1000 L1322,1000 Q1330,1000 1330,1008 L1330,1042 Z" fill="#059669"/>
+  <text x="1140" y="1016" text-anchor="middle" font-size="9.5" font-style="italic" fill="#d1fae5">«namespace» src/common</text>
+  <text x="1140" y="1034" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">TextureLoader</text>
+  <text x="960" y="1058" font-family="Consolas,monospace" font-size="10.5" fill="#1e293b">+LoadTextureFromFile(file, &amp;tex, &amp;w, &amp;h) : bool</text>
+  <line x1="950" y1="1068" x2="1330" y2="1068" stroke="#e2e8f0"/>
+  <g font-size="10" font-style="italic" fill="#64748b">
+    <text x="960" y="1084">▸ stb_image PNG decode → glTexImage2D upload</text>
+    <text x="960" y="1098">▸ mipmaps (GL_LINEAR_MIPMAP_LINEAR) · CLAMP_TO_EDGE</text>
+  </g>
+
+  <!-- ═══════════ Box: assets/images ═══════════ -->
+  <rect x="1010" y="1150" width="320" height="80" rx="8" fill="#ffffff" stroke="#059669" stroke-width="1.3" stroke-dasharray="6,3" filter="url(#sh)"/>
+  <path d="M1010,1192 L1010,1158 Q1010,1150 1018,1150 L1322,1150 Q1330,1150 1330,1158 L1330,1192 Z" fill="#059669"/>
+  <text x="1170" y="1166" text-anchor="middle" font-size="9.5" font-style="italic" fill="#d1fae5">«artifact» resource folder</text>
+  <text x="1170" y="1184" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">assets/images/</text>
+  <text x="1020" y="1210" font-size="10" fill="#1e293b">11 machines · 12 products · TECHNICIAN</text>
+  <text x="1020" y="1224" font-size="10" font-style="italic" fill="#64748b">pixel-art PNG resources</text>
+
+  <!-- ═══════════ Legend ═══════════ -->
+  <rect x="20" y="900" width="300" height="150" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+  <text x="32" y="922" font-size="11" font-weight="700" fill="#475569">Legend</text>
+  <polygon points="32,945 41,940.5 50,945 41,949.5" fill="#334155"/>
+  <line x1="50" y1="945" x2="104" y2="945" stroke="#334155" stroke-width="1.5"/>
+  <text x="114" y="948.5" font-size="10" fill="#475569">Composition — View owns panels</text>
+  <line x1="32" y1="973" x2="90" y2="973" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="7,5"/>
+  <polygon points="90,967.5 102,973 90,978.5" fill="#ffffff" stroke="#7c3aed" stroke-width="1.4"/>
+  <text x="114" y="976.5" font-size="10" fill="#475569">Realization — implements Panel</text>
+  <line x1="32" y1="1001" x2="94" y2="1001" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4"/>
+  <path d="M88,996.5 L96,1001 L88,1005.5" fill="none" stroke="#64748b" stroke-width="1.4"/>
+  <text x="114" y="1004.5" font-size="10" fill="#475569">Dependency — «read» · «create» · «use»</text>
+  <line x1="32" y1="1029" x2="96" y2="1029" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="114" y="1032.5" font-size="10" fill="#475569">Shared global selection state</text>
+
+  <!-- ═══════════ Relationships ═══════════ -->
+  <!-- main → View -->
+  <path d="M335,195 V240" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#dep)"/>
+  <text x="345" y="222" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">«call» every frame</text>
+
+  <!-- View → FactorySnap / MachineCmd -->
+  <path d="M510,270 H1330" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#dep)"/>
+  <text x="920" y="262" text-anchor="middle" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">«read» factory state snapshot</text>
+  <path d="M510,360 H1330" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#dep)"/>
+  <text x="920" y="352" text-anchor="middle" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">«create» returns user command</text>
+
+  <!-- View ◆→ 5 panels (composition) -->
+  <polygon points="340,430 348,440 340,450 332,440" fill="#334155"/>
+  <g stroke="#334155" stroke-width="1.5">
+    <line x1="340" y1="450" x2="155" y2="480"/>
+    <line x1="340" y1="450" x2="442" y2="480"/>
+    <line x1="340" y1="450" x2="724" y2="480"/>
+    <line x1="340" y1="450" x2="1051" y2="480"/>
+    <line x1="340" y1="450" x2="1360" y2="480"/>
+  </g>
+  <text x="220" y="444" text-anchor="middle" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">owns 5 panels · unique_ptr</text>
+
+  <!-- panels ──▷ Panel (realization) -->
+  <g fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="7,5">
+    <path d="M155,665 L590,900" marker-end="url(#real)"/>
+    <path d="M442,630 L650,900" marker-end="url(#real)"/>
+    <path d="M724,620 V900" marker-end="url(#real)"/>
+    <path d="M900,780 V900" marker-end="url(#real)"/>
+    <path d="M1298,690 H1262 V940 H1088 A8,8 0 0 0 1072,940 H910" marker-end="url(#real)"/>
+  </g>
+
+  <!-- FFP / IP → TextureLoader («use») -->
+  <path d="M1080,780 V1000" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#dep)"/>
+  <text x="1088" y="898" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">«use»</text>
+  <path d="M1310,700 V1000" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#dep)"/>
+  <text x="1318" y="868" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">«use»</text>
+
+  <!-- TextureLoader → assets -->
+  <path d="M1140,1110 V1150" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#dep)"/>
+  <text x="1150" y="1136" font-size="10" font-style="italic" fill="#475569" stroke="#ffffff" stroke-width="3" paint-order="stroke">loads PNG files</text>
+
+  <!-- FFP ⇢ IP : shared g_selectedMachineId -->
+  <path d="M1216,480 V462 H1450 V480" fill="none" stroke="#0d9488" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#depTeal)"/>
+  <text x="1230" y="440" text-anchor="middle" font-family="Consolas,monospace" font-size="10" fill="#0f766e" stroke="#ffffff" stroke-width="3" paint-order="stroke">g_selectedMachineId</text>
+  <text x="1230" y="454" text-anchor="middle" font-size="9.5" fill="#0f766e" stroke="#ffffff" stroke-width="3" paint-order="stroke">FFP writes on click → IP reads</text>
+</svg>
