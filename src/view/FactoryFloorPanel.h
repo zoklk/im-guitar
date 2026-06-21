@@ -5,11 +5,6 @@
 #include <string>
 #include <vector>
 #include <cmath>
-<<<<<<< HEAD
-
-enum class Anchor { Left, Right, Top, Bottom };
-
-=======
 #include <map>
 #include "../common/TextureLoader.h"
 
@@ -23,7 +18,6 @@ struct ProductImage {
     int height = 0;      // 원본 높이
 };
 
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
 struct NodeInfo {
     ImVec2 pos;
     ImVec4 baseColor;
@@ -42,8 +36,6 @@ class FactoryFloorPanel : public Panel {
 private:
     std::unordered_map<std::string, NodeInfo> nodes_;
     std::vector<ConvLayout> lines_;
-<<<<<<< HEAD
-=======
     // 물품 ID와 이미지를 연결하는 맵
     std::map<std::string, ProductImage> productImages;
     bool imagesLoaded = false;
@@ -108,7 +100,6 @@ private:
         }
         imagesLoaded = true;
     }
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
 
     void initLayout() {
         if (!nodes_.empty()) return;
@@ -127,25 +118,6 @@ private:
         float col4 = 780.0f;
         float col5 = 1030.0f;
 
-<<<<<<< HEAD
-        float midY = 245.0f;
-
-        nodes_["SPN_WOOD_BODY"] = {ImVec2(col1, 50), cDarkRed, "Wood Spawner"};
-        nodes_["SPN_WOOD_NECK"] = {ImVec2(col1, 180), cDarkRed, "Wood Spawner"};
-        nodes_["SPN_WOOD_HEAD"] = {ImVec2(col1, 310), cDarkRed, "Wood Spawner"};
-        
-        nodes_["MCH_BODY_CUT"]  = {ImVec2(col2, 50), cOrange, "Body Cutter"};
-        nodes_["MCH_NECK_CUT"]  = {ImVec2(col2, 180), cOrange, "Neck Cutter"};
-        nodes_["MCH_HEAD_CUT"]  = {ImVec2(col2, 310), cOrange, "Head Cutter"};
-        
-        nodes_["MCH_PAINT"]     = {ImVec2(col3, 50), cYellow, "Painter"};
-        nodes_["MCH_BODY_ASM"]  = {ImVec2(col3, midY), cGreen, "Body Assembler"};
-        nodes_["SPN_PICKUP"]    = {ImVec2(col3, 380), cGrey, "Pickup Spawner"};
-        nodes_["SPN_BRIDGE"]    = {ImVec2(col3, 510), cGrey, "Bridge Spawner"};
-        
-        nodes_["MCH_PART_ASM"]  = {ImVec2(col4, midY), cGreen, "Part Assembler"};
-        nodes_["MCH_ELEC"]      = {ImVec2(col4, 445), cPurple, "Elec Part Collector"};
-=======
         float midY = 205.0f;
 
         nodes_["SPN_WOOD_BODY"] = {ImVec2(col1, 10), cDarkRed, "Wood Spawner"};
@@ -163,7 +135,6 @@ private:
         
         nodes_["MCH_PART_ASM"]  = {ImVec2(col4, midY), cGreen, "Part Assembler"};
         nodes_["MCH_ELEC"]      = {ImVec2(col4, 405), cPurple, "Elec Part Collector"};
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
         
         nodes_["MCH_PACK"]      = {ImVec2(col5, midY), cRed, "Packager"};
 
@@ -184,12 +155,8 @@ private:
     }
 
     ImVec2 getAnchorOffset(Anchor anchor) {
-<<<<<<< HEAD
-        float w = 120.0f; float h = 90.0f;
-=======
         float w = 120.0f; 
         float h = 115.0f; 
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
         switch(anchor) {
             case Anchor::Left:   return ImVec2(0, h / 2.0f);
             case Anchor::Right:  return ImVec2(w, h / 2.0f);
@@ -201,17 +168,6 @@ private:
 
     void DrawMachineNode(const MachineSnap& mSnap, const NodeInfo& info) {
         ImVec4 bgColor = info.baseColor;
-<<<<<<< HEAD
-        const char* statusText = "IDLE";
-
-        if (mSnap.health == 0) {
-            bgColor = ImVec4(0.2f, 0.0f, 0.0f, 1.0f); 
-            statusText = "BROKEN!";
-        } else if (mSnap.suspended) {
-            statusText = "SUSPENDED";
-        } else if (!mSnap.currentProduct.empty()) {
-            statusText = "WORKING";
-=======
         bgColor.x *= 0.25f;
         bgColor.y *= 0.25f;
         bgColor.z *= 0.25f;
@@ -229,7 +185,6 @@ private:
         } else if (!mSnap.currentProduct.empty()) {
             statusText = "WORKING";
             statusColor = ImVec4(0.3f, 1.0f, 0.3f, 1.0f);
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
             bgColor.x = std::min(1.0f, bgColor.x + 0.15f);
             bgColor.y = std::min(1.0f, bgColor.y + 0.15f);
             bgColor.z = std::min(1.0f, bgColor.z + 0.15f);
@@ -312,14 +267,6 @@ private:
             p2_ext.y += ny * 22.0f;
         }
 
-<<<<<<< HEAD
-        drawList->AddLine(p1_ext, p2_ext, IM_COL32(160, 160, 160, 255), 26.0f); 
-        drawList->AddLine(p1_ext, p2_ext, IM_COL32(110, 110, 110, 255), 20.0f); 
-
-        int length = (cSnap != nullptr && cSnap->length > 0) ? cSnap->length : 5;
-        int currentItems = 0;
-
-=======
         // 아이템 개수 파악 및 병목 현상 감지
         int length = (cSnap != nullptr && cSnap->length > 0) ? cSnap->length : 5;
         int currentItems = 0;
@@ -337,18 +284,12 @@ private:
         drawList->AddLine(p1_ext, p2_ext, IM_COL32(110, 110, 110, 255), 20.0f); 
 
         // ─── 아이템 그리기 ───
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
         for (int i = 0; i < length; ++i) {
             float t = (i + 0.5f) / length; 
             ImVec2 slotPos = ImVec2(p1_orig.x + dx * t, p1_orig.y + dy * t);
 
             bool hasItem = (cSnap != nullptr && i < cSnap->slots.size() && cSnap->slots[i].has_value());
             if (hasItem) {
-<<<<<<< HEAD
-                currentItems++;
-                drawList->AddRectFilled(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(180, 100, 50, 255), 2.0f);
-                drawList->AddRect(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(50, 20, 0, 255), 2.0f);
-=======
                 std::string imageId;
                 float imgWidth = 18.0f, imgHeight = 18.0f, angleOffset = 0.0f; 
 
@@ -384,45 +325,11 @@ private:
                     drawList->AddRectFilled(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(180, 100, 50, 255), 2.0f);
                     drawList->AddRect(ImVec2(slotPos.x - 7, slotPos.y - 7), ImVec2(slotPos.x + 7, slotPos.y + 7), IM_COL32(50, 20, 0, 255), 2.0f);
                 }
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
             } else {
                 drawList->AddCircleFilled(slotPos, 2.0f, IM_COL32(140, 140, 140, 255));
             }
         }
 
-<<<<<<< HEAD
-        char label[16];
-        snprintf(label, sizeof(label), "%d/%d", currentItems, length);
-        ImVec2 mid = ImVec2(p1_orig.x + dx * 0.5f, p1_orig.y + dy * 0.5f);
-        
-        if (std::abs(dx) < 10.0f) { 
-            mid.x += 35; 
-        } else {
-            mid.y -= 25; 
-        }
-        
-        ImVec2 textSize = ImGui::CalcTextSize(label);
-        drawList->AddRectFilled(ImVec2(mid.x - textSize.x / 2 - 4, mid.y - textSize.y / 2 - 2), 
-                                ImVec2(mid.x + textSize.x / 2 + 4, mid.y + textSize.y / 2 + 2), 
-                                IM_COL32(255, 255, 255, 230), 4.0f);
-        drawList->AddRect(ImVec2(mid.x - textSize.x / 2 - 4, mid.y - textSize.y / 2 - 2), 
-                          ImVec2(mid.x + textSize.x / 2 + 4, mid.y + textSize.y / 2 + 2), 
-                          IM_COL32(100, 100, 100, 255), 4.0f);
-        drawList->AddText(ImVec2(mid.x - textSize.x / 2, mid.y - textSize.y / 2), IM_COL32(0, 0, 0, 255), label);
-    }
-
-    void DrawTechnicianManager(const FactorySnap& snap) {
-        ImGui::SetCursorPos(ImVec2(1180, 420));
-        ImGui::BeginChild("TechManager", ImVec2(180, 140), true);
-        ImGui::Text("Technician Manager");
-        ImGui::Separator();
-        for (const auto& tech : snap.technicians) {
-            const char* stateMsg = tech.targetMachineId.has_value() ? "Working" : "Idle";
-            ImGui::BulletText("%s (%s)", tech.id.c_str(), stateMsg);
-            if (tech.targetMachineId.has_value()) {
-                ImGui::Text(" -> %s", tech.targetMachineId.value().c_str());
-            }
-=======
         // ─── 2. 텍스트 라벨 ───
         char label[16];
         snprintf(label, sizeof(label), "%d/%d", currentItems, length);
@@ -499,20 +406,10 @@ private:
             
             ImGui::Spacing();
             ImGui::Separator();
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
         }
         ImGui::EndChild();
     }
 
-<<<<<<< HEAD
-public:
-    FactoryFloorPanel() { initLayout(); }
-
-    void render(const FactorySnap& snap, Controller* ctrl) override {
-        ImGui::SetNextWindowSize(ImVec2(1400, 650), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Factory Floor", nullptr, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
-
-=======
     void DrawTechniciansOnFloor(const FactorySnap& snap) {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImVec2 windowPos = ImGui::GetWindowPos();
@@ -596,19 +493,14 @@ public:
         LoadMachineTextures();
         ImGui::BeginChild("Factory Floor", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar);
         
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
         for (const auto& line : lines_) {
             const ConveyorSnap* foundConv = nullptr;
             for (const auto& c : snap.conveyors) {
                 if (c.id == line.convId) { foundConv = &c; break; }
             }
-<<<<<<< HEAD
-            DrawConveyor(nodes_[line.startId].pos, nodes_[line.endId].pos, line.startAnchor, line.endAnchor, foundConv);
-=======
             if (foundConv != nullptr) {
                 DrawConveyor(nodes_[line.startId].pos, nodes_[line.endId].pos, line.startAnchor, line.endAnchor, foundConv);
             }
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
         }
 
         for (const auto& mSnap : snap.machines) {
@@ -617,14 +509,8 @@ public:
                 DrawMachineNode(mSnap, it->second);
             }
         }
-<<<<<<< HEAD
-
-        DrawTechnicianManager(snap);
-        ImGui::End();
-=======
         DrawTechniciansOnFloor(snap);
         DrawTechnicianManager(snap);
         ImGui::EndChild();
->>>>>>> e45f6f6efe8e8e0187b65db4835850ce90aa6766
     }
 };
