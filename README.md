@@ -25,6 +25,14 @@ A tick-based factory pipeline simulator that produces electric guitars from raw 
 
 ![Frontend overview](./diagrams/frontend-overview.png)
 
+## UI Simulation (Normal Scenario)
+
+![Normal](diagrams/normal.gif)
+
+## UI Simulation (SmartFactory Scenario)
+
+![SmartFactory](diagrams/smartfactory.gif)
+
 ## Architecture
 
 The project follows an MVC structure. The model holds the simulation domain, the view renders ImGui panels, and the controller bridges user input to the model.
